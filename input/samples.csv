@@ -1,0 +1,3 @@
+sample,fastq1,fastq2,ref
+S1009,/home/nylander/private/GIT/sam2consensus/nf-bwa2consensus/input/fastq/P39314_1009_S17_L003_R1.fq.gz,/home/nylander/private/GIT/sam2consensus/nf-bwa2consensus/input/fastq/P39314_1009_S17_L003_R2.fq.gz,/home/nylander/private/GIT/sam2consensus/nf-bwa2consensus/input/reference/28S.fas
+S1011,/home/nylander/private/GIT/sam2consensus/nf-bwa2consensus/input/fastq/P39314_1011_S19_L003_R1.fq.gz,/home/nylander/private/GIT/sam2consensus/nf-bwa2consensus/input/fastq/P39314_1011_S19_L003_R2.fq.gz,/home/nylander/private/GIT/sam2consensus/nf-bwa2consensus/input/reference/28S.fas
