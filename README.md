@@ -109,4 +109,4 @@ $ nextflow run main.nf \
 MIT [LICENSE](LICENSE)
 
 The script [scripts/sam2consensus.py](scripts/sam2consensus.py) is under the
-GPL v.3 license.
+[GPL v.3 license](scripts/LICENSE.GPLv3).
