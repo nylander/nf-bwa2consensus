@@ -1,26 +1,19 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 10:48:11
+- Last modified: 2026-04-23 13:18:55
 - Sign: JN
 - Usage: nextflow run main.nf --samplesheet samples.csv
 */
 
 nextflow.enable.dsl=2
 
-params.samplesheet = null
-params.fastq1      = null
-params.fastq2      = null
-params.prefix      = null
-params.ref         = null
-params.outdir      = params.outdir ?: "output"
-params.maxdepth    = params.maxdepth ?: 50
-params.mindepth    = params.mindepth ?: 1
-params.fastp       = params.fastp ?: false
-params.fastp_args  = params.fastp_args ?: ""
-params.keepbam     = params.keepbam ?: false
-params.threads     = params.threads ?: 4
+params.fastq1 = null
+params.fastq2 = null
+params.prefix = null
 
 workflow {
+
+  log.info "mafft_args (${params.mafft_args?.getClass()?.name}): ${params.mafft_args}"
 
   def ch_samples
 
@@ -87,7 +80,7 @@ workflow {
     ch_for_bwa = ch_joined
   }
 
-  ch_bam = BWA_MEM_SORT(ch_for_bwa)
+  ch_bam = BWA_MEM(ch_for_bwa)
 
   SAMTOOLS_DEPTH(ch_bam)
 
@@ -102,19 +95,27 @@ workflow {
   def ch_bcftools_consensus = BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
 
   // Join the four consensus FASTAs by sample_id and concatenate them into one FASTA per sample
+  // Keep ref associated with each sample so we can optionally include it for MAFFT
   def ch_concat_input = ch_samtools_consensus
-    .map { sample_id, fasta, ref -> tuple(sample_id, fasta) }
+    .map { sample_id, fasta, ref -> tuple(sample_id, fasta, ref) }
     .combine( ch_samtools_consensus_a.map { sample_id, fasta, ref -> tuple(sample_id, fasta) } )
-    .filter { sid1, f1, sid2, f2 -> sid1 == sid2 }
-    .map { sid, f1, sid2, f2 -> tuple(sid, f1, f2) }
+    .filter { sid1, f1, ref, sid2, f2 -> sid1 == sid2 }
+    .map { sid, f1, ref, sid2, f2 -> tuple(sid, f1, f2, ref) }
     .combine( ch_samtools_consensus_iupac.map { sample_id, fasta, ref -> tuple(sample_id, fasta) } )
-    .filter { sid, f1, f2, sid3, f3 -> sid == sid3 }
-    .map { sid, f1, f2, sid3, f3 -> tuple(sid, f1, f2, f3) }
+    .filter { sid, f1, f2, ref, sid3, f3 -> sid == sid3 }
+    .map { sid, f1, f2, ref, sid3, f3 -> tuple(sid, f1, f2, f3, ref) }
     .combine( ch_bcftools_consensus.map { sample_id, fasta -> tuple(sample_id, fasta) } )
-    .filter { sid, f1, f2, f3, sid4, f4 -> sid == sid4 }
-    .map { sid, f1, f2, f3, sid4, f4 -> tuple(sid, f1, f2, f3, f4) }
+    .filter { sid, f1, f2, f3, ref, sid4, f4 -> sid == sid4 }
+    .map { sid, f1, f2, f3, ref, sid4, f4 -> tuple(sid, f1, f2, f3, f4, ref) }
 
-  CONCAT_CONSENSUS_FASTA(ch_concat_input)
+  // run concat
+  def ch_concat_out = CONCAT_CONSENSUS_FASTA(ch_concat_input)
+
+  // optional MAFFT branch
+  if( params.mafft ) {
+    def ch_for_mafft = GATHER_SEQS_FOR_MAFFT(ch_concat_out)
+    MAFFT_ALIGN(ch_for_mafft)
+  }
 }
 
 process BWA_INDEX {
@@ -138,7 +139,7 @@ process BWA_INDEX {
   """
 }
 
-process BWA_MEM_SORT {
+process BWA_MEM {
   tag { sample_id }
 
   publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
@@ -339,15 +340,51 @@ process CONCAT_CONSENSUS_FASTA {
   publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
 
   input:
-    tuple val(sample_id), path(samtools_fa), path(samtools_a_fa), path(samtools_iupac_fa), path(bcftools_fa)
+    tuple val(sample_id), path(samtools_fa), path(samtools_a_fa), path(samtools_iupac_fa), path(bcftools_fa), path(ref)
 
   output:
-    path("${sample_id}.fasta")
+    tuple val(sample_id), path("${sample_id}.fasta"), path(ref)
 
   script:
   """
   set -euo pipefail
   cat ${samtools_fa} ${samtools_a_fa} ${samtools_iupac_fa} ${bcftools_fa} > ${sample_id}.fasta
+  """
+}
+
+process GATHER_SEQS_FOR_MAFFT {
+  tag { sample_id }
+
+  input:
+    tuple val(sample_id), path(consensus_fa), path(ref)
+
+  output:
+    tuple val(sample_id), path("${sample_id}.with_ref.fasta"), emit: fasta
+
+  script:
+  """
+  set -euo pipefail
+  cat ${ref} ${consensus_fa} > ${sample_id}.with_ref.fasta
+  """
+}
+
+process MAFFT_ALIGN {
+  tag { "Aligning ${sample_id}" }
+  publishDir "${params.outdir}/mafft", mode: 'copy', overwrite: true
+
+  conda 'bioconda::mafft=7.525'
+  container "community.wave.seqera.io/library/mafft:7.525--5479bde1f106a3a3"
+
+  input:
+    tuple val(sample_id), path(fasta)
+
+  output:
+    tuple val(sample_id), path("${sample_id}.aln.fasta"), emit: alignment
+
+  script:
+  """
+  set -euo pipefail
+  mafft ${params.mafft_args} ${fasta} > ${sample_id}.aln.fasta
   """
 }
 
@@ -371,7 +408,6 @@ process FASTP {
   script:
   """
   set -euo pipefail
-
   fastp \
     --thread ${task.cpus} \
     --in1 ${r1} \
