@@ -1,8 +1,7 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 13:18:55
+- Last modified: 2026-04-23 13:53:25
 - Sign: JN
-- Usage: nextflow run main.nf --samplesheet samples.csv
 */
 
 nextflow.enable.dsl=2
@@ -12,8 +11,6 @@ params.fastq2 = null
 params.prefix = null
 
 workflow {
-
-  log.info "mafft_args (${params.mafft_args?.getClass()?.name}): ${params.mafft_args}"
 
   def ch_samples
 
@@ -86,7 +83,6 @@ workflow {
 
   ch_bam_indexed = SAMTOOLS_INDEX_BAM(ch_bam)
 
-  // Generate per-sample consensus FASTAs
   def ch_samtools_consensus = SAMTOOLS_CONSENSUS(ch_bam_indexed)
   def ch_samtools_consensus_a = SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
   def ch_samtools_consensus_iupac = SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
@@ -94,8 +90,6 @@ workflow {
   ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
   def ch_bcftools_consensus = BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
 
-  // Join the four consensus FASTAs by sample_id and concatenate them into one FASTA per sample
-  // Keep ref associated with each sample so we can optionally include it for MAFFT
   def ch_concat_input = ch_samtools_consensus
     .map { sample_id, fasta, ref -> tuple(sample_id, fasta, ref) }
     .combine( ch_samtools_consensus_a.map { sample_id, fasta, ref -> tuple(sample_id, fasta) } )
@@ -108,10 +102,8 @@ workflow {
     .filter { sid, f1, f2, f3, ref, sid4, f4 -> sid == sid4 }
     .map { sid, f1, f2, f3, ref, sid4, f4 -> tuple(sid, f1, f2, f3, f4, ref) }
 
-  // run concat
   def ch_concat_out = CONCAT_CONSENSUS_FASTA(ch_concat_input)
 
-  // optional MAFFT branch
   if( params.mafft ) {
     def ch_for_mafft = GATHER_SEQS_FOR_MAFFT(ch_concat_out)
     MAFFT_ALIGN(ch_for_mafft)
@@ -284,14 +276,6 @@ process BCFTOOLS_MPILEUP_CALL {
     | bcftools view --max-alleles 2 --include 'INFO/INDEL=0 && FORMAT/DP>='${params.mindepth} \
     --output-type z --output ${sample_id}.vcf.gz
   """
-  //  //Try to filter on allelic frequencies
-  //  script:
-  //  """
-  //  bcftools mpileup --fasta-ref ${ref} --annotate DP,AD --max-depth ${params.maxdepth} ${bam} \
-  //    | bcftools call --multiallelic-caller --output-type z \
-  //    | bcftools view --max-alleles 2 --include 'INFO/AF>=0.2 && INFO/INDEL=0 && FORMAT/DP>='${params.mindepth} \
-  //    --output-type z --output ${sample_id}.vcf.gz
-  //  """
 }
 
 process BCFTOOLS_INDEX {
