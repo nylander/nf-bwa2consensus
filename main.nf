@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 07:00:48
+- Last modified: 2026-04-23 10:28:29
 - Sign: JN
 - Usage: nextflow run main.nf --samplesheet samples.csv
 */
@@ -215,7 +215,7 @@ process SAMTOOLS_CONSENSUS {
   script:
   """
   samtools consensus --threads ${params.threads} ${bam} -o ${sample_id}.samtools.fasta
-  sed -i '/^>/ s/\$/ samtools-consensus/' ${sample_id}.samtools.fasta
+  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta
   """
 }
 
@@ -230,12 +230,12 @@ process SAMTOOLS_CONSENSUS_A {
   tuple val(sample_id), path(bam), path(bai), path(ref)
 
   output:
-  tuple val(sample_id), path("${sample_id}.samtools_a.fasta"), path(ref)
+  tuple val(sample_id), path("${sample_id}.samtools-a.fasta"), path(ref)
 
   script:
   """
-  samtools consensus --threads ${params.threads} -a ${bam} -o ${sample_id}.samtools_a.fasta
-  sed -i '/^>/ s/\$/ samtools-a-consensus/' ${sample_id}.samtools_a.fasta
+  samtools consensus --threads ${params.threads} -a ${bam} -o ${sample_id}.samtools-a.fasta
+  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-a-consensus [ref:\\1]/" ${sample_id}.samtools-a.fasta
   """
 }
 
@@ -250,12 +250,12 @@ process SAMTOOLS_CONSENSUS_IUPAC {
   tuple val(sample_id), path(bam), path(bai), path(ref)
 
   output:
-  tuple val(sample_id), path("${sample_id}.samtools_iupac.fasta"), path(ref)
+  tuple val(sample_id), path("${sample_id}.samtools-iupac.fasta"), path(ref)
 
   script:
   """
-  samtools consensus --threads ${params.threads} --ambig ${bam} -o ${sample_id}.samtools_iupac.fasta
-  sed -i '/^>/ s/\$/ samtools-iupac-consensus/' ${sample_id}.samtools_iupac.fasta
+  samtools consensus --threads ${params.threads} --ambig ${bam} -o ${sample_id}.samtools-iupac.fasta
+  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-iupac-consensus [ref:\\1]/" ${sample_id}.samtools-iupac.fasta
   """
 }
 
@@ -323,7 +323,7 @@ process BCFTOOLS_CONSENSUS {
   """
   bcftools consensus --fasta-ref ${ref} --haplotype 1 --missing "N" --absent "N" ${vcfgz} \
     | awk '{print \$1}' > ${sample_id}.bcftools.fasta
-  sed -i '/^>/ s/\$/ bcftools-consensus/' ${sample_id}.bcftools.fasta
+  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-bcftools [ref:\\1]/" ${sample_id}.bcftools.fasta
   """
 }
 
