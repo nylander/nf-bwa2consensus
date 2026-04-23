@@ -43,40 +43,30 @@ run](# single sample) below):
 
 ```
 $ nextflow run main.nf \
-    --fastq1 input/fastq/P39314_1009_S17_L003_R1.fq.gz \
-    --fastq2 input/fastq/P39314_1009_S17_L003_R2.fq.gz \
-    --prefix S1009 \
-    --ref input/reference/28S.fas \
-    --outdir output \
+    --fastq1 'input/fastq/P39314_1009_S17_L003_R1.fq.gz' \
+    --fastq2 'input/fastq/P39314_1009_S17_L003_R2.fq.gz' \
+    --prefix 'S1009' \
+    --ref 'input/reference/28S.fas' \
+    --outdir 'output' \
     --threads 8 \
     --mindepth 2 \
     --maxdepth 50 \
-    --keepbam true \
-    --fastp true \
-    --fastp_args '--qualified_quality_phred 30 --length_required 50'
+    --keepbam \
+    --fastp \
+    --fastp_args '--qualified_quality_phred 30 --length_required 50' \
+    --mafft \
+    --mafft_args '--auto'
 ```
 
-Output from this single-sample run where we do fastp-filtering and keeping the
-bam file:
+Output from this single-sample run where we do fastp-filtering, keeping the
+bam file, and providing a multiple-sequence aslignment between the reference
+and the different consensus variants:
 
-    output/
-    ├── bam
-    │   ├── 28S.fas
-    │   └── S1009.bam
-    ├── consensus
-    │   ├── 28S.fas
-    │   ├── S1009.bcftools.fasta
-    │   ├── S1009.samtools_a.fasta
-    │   ├── S1009.samtools.fasta
-    │   └── S1009.samtools_iupac.fasta
-    ├── depth
-    │   ├── 28S.fas
-    │   └── S1009.depth.tsv
-    └── fastp
-        ├── S1009_1.trimmed.fastq.gz
-        ├── S1009_2.trimmed.fastq.gz
-        ├── S1009.fastp.html
-        └── S1009.fastp.json
+```
+output/
+...
+```
+
 
 ### two samples, same ref
 
