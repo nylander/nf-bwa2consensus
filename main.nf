@@ -1,11 +1,13 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 13:53:25
+- Last modified: 2026-04-23 14:12:18
 - Sign: JN
 */
 
 nextflow.enable.dsl=2
 
+params.samplesheet = null
+params.ref = null
 params.fastq1 = null
 params.fastq2 = null
 params.prefix = null
@@ -379,7 +381,8 @@ process FASTP {
   conda "bioconda::fastp=1.3.2"
   container "oras://community.wave.seqera.io/library/fastp:1.3.2--916946baf992e235"
 
-  publishDir "${params.outdir}/fastp", mode: 'copy', overwrite: true, enabled: params.fastp
+  //publishDir "${params.outdir}/fastp", mode: 'copy', overwrite: true, enabled: params.fastp
+  publishDir "${params.outdir}/fastp", mode: 'copy', overwrite: true
 
   input:
     tuple val(sample_id), path(r1), path(r2)
