@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-22 12:54:21
+- Last modified: 2026-04-23 07:00:48
 - Sign: JN
 - Usage: nextflow run main.nf --samplesheet samples.csv
 */
@@ -93,13 +93,29 @@ workflow {
 
   ch_bam_indexed = SAMTOOLS_INDEX_BAM(ch_bam)
 
-  SAMTOOLS_CONSENSUS(ch_bam_indexed)
-  SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
-  SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
+  // Generate per-sample consensus FASTAs
+  def ch_samtools_consensus       = SAMTOOLS_CONSENSUS(ch_bam_indexed)
+  def ch_samtools_consensus_a     = SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
+  def ch_samtools_consensus_iupac = SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
 
   ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_bam_indexed)
   ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
-  BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
+  def ch_bcftools_consensus = BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
+
+  // Join the four consensus FASTAs by sample_id and concatenate them into one FASTA per sample
+  def ch_concat_input = ch_samtools_consensus
+    .map { sample_id, fasta, ref -> tuple(sample_id, fasta) }
+    .combine( ch_samtools_consensus_a.map { sample_id, fasta, ref -> tuple(sample_id, fasta) } )
+    .filter { sid1, f1, sid2, f2 -> sid1 == sid2 }
+    .map { sid, f1, sid2, f2 -> tuple(sid, f1, f2) }
+    .combine( ch_samtools_consensus_iupac.map { sample_id, fasta, ref -> tuple(sample_id, fasta) } )
+    .filter { sid, f1, f2, sid3, f3 -> sid == sid3 }
+    .map { sid, f1, f2, sid3, f3 -> tuple(sid, f1, f2, f3) }
+    .combine( ch_bcftools_consensus.map { sample_id, fasta -> tuple(sample_id, fasta) } )
+    .filter { sid, f1, f2, f3, sid4, f4 -> sid == sid4 }
+    .map { sid, f1, f2, f3, sid4, f4 -> tuple(sid, f1, f2, f3, f4) }
+
+  CONCAT_CONSENSUS_FASTA(ch_concat_input)
 }
 
 process BWA_INDEX {
@@ -261,7 +277,6 @@ process BCFTOOLS_MPILEUP_CALL {
     | bcftools call --multiallelic-caller --output-type z \
     | bcftools view --max-alleles 2 --include 'INFO/INDEL=0 && FORMAT/DP>='${params.mindepth} \
     --output-type z --output ${sample_id}.vcf.gz
-
   """
   //  //Try to filter on allelic frequencies
   //  script:
@@ -312,6 +327,23 @@ process BCFTOOLS_CONSENSUS {
   """
 }
 
+process CONCAT_CONSENSUS_FASTA {
+  tag { sample_id }
+  publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
+
+  input:
+    tuple val(sample_id), path(samtools_fa), path(samtools_a_fa), path(samtools_iupac_fa), path(bcftools_fa)
+
+  output:
+    path("${sample_id}.fasta")
+
+  script:
+  """
+  set -euo pipefail
+  cat ${samtools_fa} ${samtools_a_fa} ${samtools_iupac_fa} ${bcftools_fa} > ${sample_id}.fasta
+  """
+}
+
 process FASTP {
   tag { sample_id }
   label 'process_medium'
@@ -333,7 +365,7 @@ process FASTP {
   """
   set -euo pipefail
 
-  fastp \\
+  fastp \
     --thread ${task.cpus} \
     --in1 ${r1} \
     --in2 ${r2} \
