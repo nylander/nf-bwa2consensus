@@ -1,7 +1,7 @@
 # nf-bwa2consensus
 
-Map fastq with [`bwa mem`](https://github.com/lh3/BWA) against reference and
-calculate consensus using different methods ([`samtools
+Map fastq using [`bwa mem`](https://github.com/lh3/BWA) against reference and
+calculate consensus sequence using different methods ([`samtools
 consensus`](https://github.com/samtools/samtools) and [`bcftools
 consensus`](https://samtools.github.io/bcftools/howtos/consensus-sequence.html)).
 
@@ -10,7 +10,8 @@ Input (Illumina fastq) can optionally be filtered using
 
 Tested using [nextflow](https://www.nextflow.io/) version 25.10.4.11173.
 
-A python script for accomplishing basically the same task for individual samples are located in [scripts/bwa2consensus.py](scripts/bwa2consensus.py).
+A python script for accomplishing basically the same task for individual
+samples are located in [scripts/bwa2consensus.py](scripts/bwa2consensus.py).
 
 ## Input
 
@@ -58,9 +59,9 @@ $ nextflow run main.nf \
    --mafft_args='--auto'
 ```
 
-Output from this single-sample run where we do fastp-filtering, keeping the
-bam file, and providing a multiple-sequence aslignment between the reference
-and the different consensus variants:
+Output from this single-sample run where we do fastp-filtering, keeping the bam
+file, and providing a multiple-sequence alignment with reference and the
+different consensus variants:
 
 ```
 single/
@@ -89,28 +90,24 @@ single/
 ### two samples, same ref
 
 ```
-$ nextflow run main.nf \
-    --samplesheet input/samples.csv
+$ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
 ### three samples, different refs
 
 ```
-$ nextflow run main.nf \
-    --samplesheet input/samples-28s-coi.csv
+$ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
 ```
 
 ### three samples, different refs in one multi fasta
 
 ```
-$ nextflow run main.nf \
-    --samplesheet input/samples-mixed-ref.csv
+$ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
 ```
 
 ### Remove output
 
-    $ nextflow clean -f
-    $ rm -rf work .nextflow* output
+    $ make clean
 
 ## License
 

@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 14:12:18
+- Last modified: 2026-04-23 18:18:19
 - Sign: JN
 */
 
@@ -358,8 +358,8 @@ process MAFFT_ALIGN {
   tag { "Aligning ${sample_id}" }
   publishDir "${params.outdir}/mafft", mode: 'copy', overwrite: true
 
-  conda 'bioconda::mafft=7.525'
-  container "community.wave.seqera.io/library/mafft:7.525--5479bde1f106a3a3"
+  conda 'conda-forge::mafft=7.526'
+  container "community.wave.seqera.io/library/mafft:7.526--b2faf35dfc7d73ab"
 
   input:
     tuple val(sample_id), path(fasta)
