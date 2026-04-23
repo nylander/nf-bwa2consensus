@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 10:28:29
+- Last modified: 2026-04-23 10:48:11
 - Sign: JN
 - Usage: nextflow run main.nf --samplesheet samples.csv
 */
@@ -94,10 +94,9 @@ workflow {
   ch_bam_indexed = SAMTOOLS_INDEX_BAM(ch_bam)
 
   // Generate per-sample consensus FASTAs
-  def ch_samtools_consensus       = SAMTOOLS_CONSENSUS(ch_bam_indexed)
-  def ch_samtools_consensus_a     = SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
+  def ch_samtools_consensus = SAMTOOLS_CONSENSUS(ch_bam_indexed)
+  def ch_samtools_consensus_a = SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
   def ch_samtools_consensus_iupac = SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
-
   ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_bam_indexed)
   ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
   def ch_bcftools_consensus = BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
@@ -215,7 +214,9 @@ process SAMTOOLS_CONSENSUS {
   script:
   """
   samtools consensus --threads ${params.threads} ${bam} -o ${sample_id}.samtools.fasta
-  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta
+  tmp=${sample_id}.samtools.fasta.tmp
+  sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta > "\$tmp"
+  mv "\$tmp" ${sample_id}.samtools.fasta
   """
 }
 
@@ -235,7 +236,9 @@ process SAMTOOLS_CONSENSUS_A {
   script:
   """
   samtools consensus --threads ${params.threads} -a ${bam} -o ${sample_id}.samtools-a.fasta
-  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-a-consensus [ref:\\1]/" ${sample_id}.samtools-a.fasta
+  tmp=${sample_id}.samtools-a.fasta.tmp
+  sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-a-consensus [ref:\\1]/" ${sample_id}.samtools-a.fasta > "\$tmp"
+  mv "\$tmp" ${sample_id}.samtools-a.fasta
   """
 }
 
@@ -255,7 +258,9 @@ process SAMTOOLS_CONSENSUS_IUPAC {
   script:
   """
   samtools consensus --threads ${params.threads} --ambig ${bam} -o ${sample_id}.samtools-iupac.fasta
-  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-iupac-consensus [ref:\\1]/" ${sample_id}.samtools-iupac.fasta
+  tmp=${sample_id}.samtools-iupac.fasta.tmp
+  sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-iupac-consensus [ref:\\1]/" ${sample_id}.samtools-iupac.fasta > "\$tmp"
+  mv "\$tmp" ${sample_id}.samtools-iupac.fasta
   """
 }
 
@@ -323,7 +328,9 @@ process BCFTOOLS_CONSENSUS {
   """
   bcftools consensus --fasta-ref ${ref} --haplotype 1 --missing "N" --absent "N" ${vcfgz} \
     | awk '{print \$1}' > ${sample_id}.bcftools.fasta
-  sed -i "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-bcftools [ref:\\1]/" ${sample_id}.bcftools.fasta
+  tmp=${sample_id}.bcftools.fasta.tmp
+  sed "/^>/ s/^>\\(.*\\)/>${sample_id} bcftools-consensus [ref:\\1]/" ${sample_id}.bcftools.fasta > "\$tmp"
+  mv "\$tmp" ${sample_id}.bcftools.fasta
   """
 }
 
