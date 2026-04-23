@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 18:18:19
+- Last modified: 2026-04-23 18:58:06
 - Sign: JN
 */
 
@@ -126,10 +126,11 @@ process BWA_INDEX {
 
   script:
   """
+  set -euo pipefail
   mkdir -p ref_index
   bwa index ${ref}
   samtools faidx ${ref}
-  cp ${ref}.* ref_index/
+  cp -v ${ref}.amb ${ref}.ann ${ref}.bwt ${ref}.pac ${ref}.sa ref_index/
   """
 }
 
