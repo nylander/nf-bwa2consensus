@@ -49,39 +49,41 @@ workflow {
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), ref) }
     .unique { refkey, ref -> refkey }
 
-  // BWA_INDEX emits TWO channels (one for ref, one for index files)
-  // so we must merge them into a single keyed tuple before combining.
-  def ch_ref_indexed_keyed = BWA_INDEX(ch_refs_keyed)
-    .map { refkey, ref, idx -> tuple(refkey, ref, idx) }
+  // BWA_INDEX emits two *separate* channels. Capture them explicitly.
+  def bwa_index_out = BWA_INDEX(ch_refs_keyed)
+  def ch_ref_keyed  = bwa_index_out[0]
+  def ch_idx_keyed  = bwa_index_out[1]
+
+  // Merge them into one keyed channel: (refkey, ref, bwt,pac,ann,amb,sa,fai)
+  def ch_ref_indexed_keyed = ch_ref_keyed
+    .combine(ch_idx_keyed)
+    .filter { k1, ref, k2, bwt, pac, ann, amb, sa, fai -> k1 == k2 }
+    .map    { k,  ref, k2, bwt, pac, ann, amb, sa, fai -> tuple(k, ref, bwt, pac, ann, amb, sa, fai) }
 
   def ch_samples_keyed = ch_samples
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), sample, r1, r2, ref) }
 
-  // combine expects a single channel on each side; do the keyed filter explicitly
   def ch_joined = ch_samples_keyed
     .combine(ch_ref_indexed_keyed)
-    .filter { sampleKey, sample, r1, r2, ref, refKey, ref2, idx -> sampleKey == refKey }
-    .map    { sampleKey, sample, r1, r2, ref, refKey, ref2, idx -> tuple(sample, r1, r2, ref2, idx) }
+    .filter { sampleKey, sample, r1, r2, ref, refKey, ref2, bwt, pac, ann, amb, sa, fai -> sampleKey == refKey }
+    .map    { sampleKey, sample, r1, r2, ref, refKey, ref2, bwt, pac, ann, amb, sa, fai -> tuple(sample, r1, r2, ref2, bwt, pac, ann, amb, sa, fai) }
 
   def ch_for_bwa
 
   if( params.fastp ) {
-    def ch_reads_for_fastp = ch_joined.map { sample, r1, r2, ref, idx -> tuple(sample, r1, r2, ref, idx) }
+    def ch_reads_for_fastp = ch_joined.map { sample, r1, r2, ref, bwt, pac, ann, amb, sa, fai -> tuple(sample, r1, r2, ref, bwt, pac, ann, amb, sa, fai) }
 
     def ch_trimmed = FASTP(
-      ch_reads_for_fastp.map { sample, r1, r2, ref, idx -> tuple(sample, r1, r2) }
+      ch_reads_for_fastp.map { sample, r1, r2, ref, bwt, pac, ann, amb, sa, fai -> tuple(sample, r1, r2) }
     ).reads
 
-    // Re-associate trimmed reads with reference/index using sample id key
     ch_for_bwa = ch_trimmed
-      .map { s, r1t, r2t -> tuple(s, tuple(r1t, r2t)) }
-      .combine( ch_reads_for_fastp.map { s, r1, r2, ref, idx -> tuple(s, tuple(ref, idx)) } )
-      .filter { s1, reads, s2, refinfo -> s1 == s2 }
-      .map { s, reads, s2, refinfo -> tuple(s, reads[0], reads[1], refinfo[0], refinfo[1]) }
+      .combine( ch_reads_for_fastp.map { s, r1, r2, ref, bwt, pac, ann, amb, sa, fai -> tuple(s, ref, bwt, pac, ann, amb, sa, fai) } )
+      .filter { s1, r1t, r2t, s2, ref, bwt, pac, ann, amb, sa, fai -> s1 == s2 }
+      .map    { s,  r1t, r2t, s2, ref, bwt, pac, ann, amb, sa, fai -> tuple(s, r1t, r2t, ref, bwt, pac, ann, amb, sa, fai) }
   }
   else {
     ch_for_bwa = ch_joined
-      .map { sample, r1, r2, ref, idx -> tuple(sample, r1, r2, ref, idx) }
   }
 
   ch_bam = BWA_MEM(ch_for_bwa)
