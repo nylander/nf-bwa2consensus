@@ -49,34 +49,39 @@ workflow {
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), ref) }
     .unique { refkey, ref -> refkey }
 
+  // BWA_INDEX emits TWO channels (one for ref, one for index files)
+  // so we must merge them into a single keyed tuple before combining.
   def ch_ref_indexed_keyed = BWA_INDEX(ch_refs_keyed)
+    .map { refkey, ref, idx -> tuple(refkey, ref, idx) }
 
   def ch_samples_keyed = ch_samples
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), sample, r1, r2, ref) }
 
-  // Use combine()+filter() because join() is not available for DataflowStreamReadAdapter in this context
+  // combine expects a single channel on each side; do the keyed filter explicitly
   def ch_joined = ch_samples_keyed
     .combine(ch_ref_indexed_keyed)
-    .filter { sampleKey, sample, r1, r2, ref, refKey, refdir -> sampleKey == refKey }
-    .map    { key, sample, r1, r2, ref, refKey, refdir -> tuple(sample, r1, r2, ref, refdir) }
+    .filter { sampleKey, sample, r1, r2, ref, refKey, ref2, idx -> sampleKey == refKey }
+    .map    { sampleKey, sample, r1, r2, ref, refKey, ref2, idx -> tuple(sample, r1, r2, ref2, idx) }
 
   def ch_for_bwa
 
   if( params.fastp ) {
-    def ch_reads_for_fastp = ch_joined.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2, ref, refdir) }
+    def ch_reads_for_fastp = ch_joined.map { sample, r1, r2, ref, idx -> tuple(sample, r1, r2, ref, idx) }
 
     def ch_trimmed = FASTP(
-      ch_reads_for_fastp.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2) }
+      ch_reads_for_fastp.map { sample, r1, r2, ref, idx -> tuple(sample, r1, r2) }
     ).reads
 
+    // Re-associate trimmed reads with reference/index using sample id key
     ch_for_bwa = ch_trimmed
       .map { s, r1t, r2t -> tuple(s, tuple(r1t, r2t)) }
-      .combine( ch_reads_for_fastp.map { s, r1, r2, ref, refdir -> tuple(s, tuple(ref, refdir)) } )
+      .combine( ch_reads_for_fastp.map { s, r1, r2, ref, idx -> tuple(s, tuple(ref, idx)) } )
       .filter { s1, reads, s2, refinfo -> s1 == s2 }
       .map { s, reads, s2, refinfo -> tuple(s, reads[0], reads[1], refinfo[0], refinfo[1]) }
   }
   else {
     ch_for_bwa = ch_joined
+      .map { sample, r1, r2, ref, idx -> tuple(sample, r1, r2, ref, idx) }
   }
 
   ch_bam = BWA_MEM(ch_for_bwa)
