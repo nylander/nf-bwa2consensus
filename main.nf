@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-24
+- Last modified: 2026-04-24 12:56:16
 - Sign: JN
 */
 
@@ -45,18 +45,11 @@ workflow {
     error "Provide either --samplesheet OR (--fastq1 --fastq2 --prefix --ref)"
   }
 
-  /*
-   * Build reference indices only once per unique reference.
-   *
-   * We key references by their canonical real path, so the same FASTA provided via
-   * different relative paths or symlinks still results in a single BWA_INDEX task.
-   */
   def ch_refs_keyed = ch_samples
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), ref) }
     .unique { refkey, ref -> refkey }
 
   def ch_ref_indexed_keyed = BWA_INDEX(ch_refs_keyed)
-    // -> (refkey, refdir)
 
   def ch_samples_keyed = ch_samples
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), sample, r1, r2, ref) }
@@ -94,6 +87,7 @@ workflow {
   def ch_samtools_consensus = SAMTOOLS_CONSENSUS(ch_bam_indexed)
   def ch_samtools_consensus_a = SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
   def ch_samtools_consensus_iupac = SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
+
   ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_bam_indexed)
   ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
   def ch_bcftools_consensus = BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
@@ -121,8 +115,7 @@ workflow {
 process BWA_INDEX {
   tag { ref.baseName }
 
-  // Publish reference index only when keepbam is enabled (per user request)
-  publishDir "${params.outdir}/ref_index", mode: 'copy', overwrite: true, enabled: params.keepbam
+  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
 
   conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
@@ -131,22 +124,16 @@ process BWA_INDEX {
     tuple val(refkey), path(ref)
 
   output:
-    // Return a directory that contains the FASTA plus all index files.
     tuple val(refkey), path("ref_index")
 
   script:
   """
   set -euo pipefail
-
-  # Create a self-contained reference+index directory.
   mkdir -p ref_index
-  cp -v ${ref} ref_index/ref.fa
-
-  bwa index ref_index/ref.fa
-  samtools faidx ref_index/ref.fa
-
-  # Ensure expected outputs exist.
-  ls -l ref_index/ref.fa.*
+  cp -v ${ref} ref_index/${ref}
+  bwa index ref_index/${ref}
+  samtools faidx ref_index/${ref}
+  ls -l ref_index/${ref}.*
   """
 }
 
@@ -167,12 +154,8 @@ process BWA_MEM {
   script:
   """
   set -euo pipefail
-
-  # Copy the (deduplicated) reference index directory into the task work dir.
   cp -a ${ref_idx}/* .
-
-  # Use the self-contained reference inside the index directory.
-  bwa mem -t ${params.threads} ref.fa ${r1} ${r2} \
+  bwa mem -t ${params.threads} ${ref} ${r1} ${r2} \
     | samtools sort --threads ${params.threads} -o ${sample_id}.bam
   """
 }
@@ -180,7 +163,6 @@ process BWA_MEM {
 process SAMTOOLS_INDEX_BAM {
   tag { sample_id }
 
-  // Ensure BAM index gets published alongside BAM when keepbam is enabled
   publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
 
   conda "bioconda::samtools=1.23.1"
@@ -413,7 +395,6 @@ process FASTP {
   conda "bioconda::fastp=1.3.2"
   container "oras://community.wave.seqera.io/library/fastp:1.3.2--916946baf992e235"
 
-  //publishDir "${params.outdir}/fastp", mode: 'copy', overwrite: true, enabled: params.fastp
   publishDir "${params.outdir}/fastp", mode: 'copy', overwrite: true
 
   input:
