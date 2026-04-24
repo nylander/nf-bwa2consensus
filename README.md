@@ -44,8 +44,8 @@ run](# single sample) below):
 
 ```
 $ nextflow run main.nf \
-   --fastq1='input/fastq/P39314_1009_S17_L003_R1.fq.gz' \
-   --fastq2='input/fastq/P39314_1009_S17_L003_R2.fq.gz' \
+   --fastq1='input/fastq/S1009_R1.fq.gz' \
+   --fastq2='input/fastq/S1009_R2.fq.gz' \
    --prefix='S1009' \
    --ref='input/reference/28S.fas' \
    --outdir='single' \
@@ -87,19 +87,19 @@ single/
     └── S1009.aln.fasta
 ```
 
-### two samples, same ref
+### two samples, same reference
 
 ```
 $ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
-### three samples, different refs
+### three samples, different references
 
 ```
 $ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
 ```
 
-### three samples, different refs in one multi fasta
+### three samples, different references in one multi-fasta file
 
 ```
 $ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
