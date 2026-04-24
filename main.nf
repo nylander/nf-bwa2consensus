@@ -124,16 +124,16 @@ process BWA_INDEX {
     tuple val(refkey), path(ref)
 
   output:
-    tuple val(refkey), path("ref_index")
+    tuple val(refkey), path(ref)
+    tuple val(refkey), path("${ref}.*")
 
   script:
   """
   set -euo pipefail
-  mkdir -p ref_index
-  cp -v ${ref} ref_index/${ref}
-  bwa index ref_index/${ref}
-  samtools faidx ref_index/${ref}
-  ls -l ref_index/${ref}.*
+  cp -v ${ref} .
+  bwa index ${ref}
+  samtools faidx ${ref}
+  ls -l ${ref}.*
   """
 }
 
@@ -146,7 +146,7 @@ process BWA_MEM {
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
 
   input:
-  tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_idx)
+  tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_bwt), path(ref_pac), path(ref_ann), path(ref_amb), path(ref_sa), path(ref_fai)
 
   output:
   tuple val(sample_id), path("${sample_id}.bam"), path(ref)
@@ -154,7 +154,6 @@ process BWA_MEM {
   script:
   """
   set -euo pipefail
-  cp -a ${ref_idx}/* .
   bwa mem -t ${params.threads} ${ref} ${r1} ${r2} \
     | samtools sort --threads ${params.threads} -o ${sample_id}.bam
   """
@@ -328,10 +327,10 @@ process BCFTOOLS_CONSENSUS {
   """
   set -euo pipefail
   bcftools consensus --fasta-ref ${ref} --haplotype 1 --missing "N" --absent "N" ${vcfgz} \
-    | awk '{print \$1}' > ${sample_id}.bcftools.fasta
+    | awk '{print \\$1}' > ${sample_id}.bcftools.fasta
   tmp=${sample_id}.bcftools.fasta.tmp
-  sed "/^>/ s/^>\\(.*\\)/>${sample_id} bcftools-consensus [ref:\\1]/" ${sample_id}.bcftools.fasta > "\$tmp"
-  mv "\$tmp" ${sample_id}.bcftools.fasta
+  sed "/^>/ s/^>\\(.*\\)/>${sample_id} bcftools-consensus [ref:\\1]/" ${sample_id}.bcftools.fasta > "\\$tmp"
+  mv "\\$tmp" ${sample_id}.bcftools.fasta
   """
 }
 
