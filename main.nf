@@ -55,9 +55,8 @@ workflow {
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), sample, r1, r2, ref) }
 
   def ch_joined = ch_samples_keyed
-    .combine(ch_ref_indexed_keyed)
-    .filter { sampleKey, sample, r1, r2, ref, refKey, refdir -> sampleKey == refKey }
-    .map    { key, sample, r1, r2, ref, refKey, refdir -> tuple(sample, r1, r2, ref, refdir) }
+    .join(ch_ref_indexed_keyed)
+    .map { refKey, sample, r1, r2, ref, refdir -> tuple(sample, r1, r2, ref, refdir) }
 
   def ch_for_bwa
 
@@ -69,10 +68,9 @@ workflow {
     ).reads
 
     ch_for_bwa = ch_trimmed
-      .map { s, r1t, r2t -> tuple(s, tuple(r1t, r2t)) }
-      .combine(ch_reads_for_fastp.map { s, r1, r2, ref, refdir -> tuple(s, tuple(ref, refdir)) })
-      .filter { s1, reads, s2, refinfo -> s1 == s2 }
-      .map { s, reads, s2, refinfo -> tuple(s, reads[0], reads[1], refinfo[0], refinfo[1]) }
+      .map { s, r1t, r2t -> tuple(s, r1t, r2t) }
+      .join( ch_reads_for_fastp.map { s, r1, r2, ref, refdir -> tuple(s, ref, refdir) } )
+      .map { s, r1t, r2t, ref, refdir -> tuple(s, r1t, r2t, ref, refdir) }
   }
   else {
     ch_for_bwa = ch_joined
