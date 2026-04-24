@@ -115,7 +115,7 @@ workflow {
 process BWA_INDEX {
   tag { ref.baseName }
 
-  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
+  publishDir "${params.outdir}/bam/${ref.baseName}_index", mode: 'copy', overwrite: true, enabled: params.keepbam
 
   conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
