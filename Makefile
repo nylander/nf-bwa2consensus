@@ -2,7 +2,7 @@
 # Makefile for nf-bwa2consensus
 #
 
-.PHONY: all run clean distclean test mafft fastp fastp-mafft-keepbam
+.PHONY: all run clean distclean test mafft keepbam fastp fastp-mafft-keepbam
 
 all: run
 
@@ -14,6 +14,11 @@ run:
 two-three:
 	@echo "S1009 mapped against 28S, S1010 and S1011 against COI"
 	nextflow run main.nf --samplesheet input/samples-28s-coi.csv
+	@tree output
+
+keepbam:
+	@echo "S1009 mapped against 28S, S1010 and S1011 against COI, keep bam files"
+	nextflow run main.nf --samplesheet input/samples-28s-coi.csv --keepbam
 	@tree output
 
 fastp:
@@ -28,10 +33,10 @@ mafft:
 
 fastp-mafft-keepbam:
 	@echo "run all options"
-	nextflow run main.nf --samplesheet input/samples.csv --mafft --mafft_args='--auto' --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50' --keepbam
+	nextflow run main.nf --samplesheet input/samples-28s-coi.csv --mafft --mafft_args='--auto' --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50' --keepbam
 	@tree output
 
-test: fastp-mafft-keepbam
+test: distclean fastp-mafft-keepbam
 
 clean:
 	rm -rf work/ .nextflow*
