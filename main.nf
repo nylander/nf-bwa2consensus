@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-23 18:58:06
+- Last modified: 2026-04-24 11:00:54
 - Sign: JN
 */
 
@@ -171,6 +171,7 @@ process SAMTOOLS_INDEX_BAM {
 
   script:
   """
+  set -euo pipefail
   samtools index -@ ${params.threads} ${bam}
   """
 }
@@ -190,6 +191,7 @@ process SAMTOOLS_DEPTH {
 
   script:
   """
+  set -euo pipefail
   samtools depth -a --threads ${params.threads} ${bam} > ${sample_id}.depth.tsv
   """
 }
@@ -209,6 +211,7 @@ process SAMTOOLS_CONSENSUS {
 
   script:
   """
+  set -euo pipefail
   samtools consensus --threads ${params.threads} ${bam} -o ${sample_id}.samtools.fasta
   tmp=${sample_id}.samtools.fasta.tmp
   sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta > "\$tmp"
@@ -231,6 +234,7 @@ process SAMTOOLS_CONSENSUS_A {
 
   script:
   """
+  set -euo pipefail
   samtools consensus --threads ${params.threads} -a ${bam} -o ${sample_id}.samtools-a.fasta
   tmp=${sample_id}.samtools-a.fasta.tmp
   sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-a-consensus [ref:\\1]/" ${sample_id}.samtools-a.fasta > "\$tmp"
@@ -253,6 +257,7 @@ process SAMTOOLS_CONSENSUS_IUPAC {
 
   script:
   """
+  set -euo pipefail
   samtools consensus --threads ${params.threads} --ambig ${bam} -o ${sample_id}.samtools-iupac.fasta
   tmp=${sample_id}.samtools-iupac.fasta.tmp
   sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-iupac-consensus [ref:\\1]/" ${sample_id}.samtools-iupac.fasta > "\$tmp"
@@ -274,6 +279,7 @@ process BCFTOOLS_MPILEUP_CALL {
 
   script:
   """
+  set -euo pipefail
   bcftools mpileup --fasta-ref ${ref} --annotate DP --max-depth ${params.maxdepth} ${bam} \
     | bcftools call --multiallelic-caller --output-type z \
     | bcftools view --max-alleles 2 --include 'INFO/INDEL=0 && FORMAT/DP>='${params.mindepth} \
@@ -295,6 +301,7 @@ process BCFTOOLS_INDEX {
 
   script:
   """
+  set -euo pipefail
   bcftools index --threads ${params.threads} ${vcfgz}
   """
 }
@@ -314,6 +321,7 @@ process BCFTOOLS_CONSENSUS {
 
   script:
   """
+  set -euo pipefail
   bcftools consensus --fasta-ref ${ref} --haplotype 1 --missing "N" --absent "N" ${vcfgz} \
     | awk '{print \$1}' > ${sample_id}.bcftools.fasta
   tmp=${sample_id}.bcftools.fasta.tmp
