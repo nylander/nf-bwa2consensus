@@ -33,7 +33,7 @@ mafft:
 
 fastp-mafft-keepbam:
 	@echo "run all options"
-	nextflow run main.nf --samplesheet input/samples-28s-coi.csv --mafft --mafft_args='--auto' --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50' --keepbam
+	nextflow run main.nf --samplesheet input/samples-28s-coi.csv --mafft --mafft_args='--auto' --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50' --bwa_args='-k 15' --bwa_index_args='-a is' --keepbam
 	@tree output
 
 test: distclean fastp-mafft-keepbam

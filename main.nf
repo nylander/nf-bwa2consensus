@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-24 11:00:54
+- Last modified: 2026-04-27 16:46:20
 - Sign: JN
 */
 
@@ -128,7 +128,7 @@ process BWA_INDEX {
   """
   set -euo pipefail
   mkdir -p ref_index
-  bwa index ${ref}
+  bwa index ${params.bwa_index_args} ${ref}
   samtools faidx ${ref}
   cp -v ${ref}.amb ${ref}.ann ${ref}.bwt ${ref}.pac ${ref}.sa ref_index/
   """
@@ -152,7 +152,7 @@ process BWA_MEM {
   """
   set -euo pipefail
   cp -a ${ref_idx}/* .
-  bwa mem -t ${params.threads} ${ref} ${r1} ${r2} \
+  bwa mem ${params.bwa_args} -t ${params.threads} ${ref} ${r1} ${r2} \
     | samtools sort --threads ${params.threads} -o ${sample_id}.bam
   """
 }
