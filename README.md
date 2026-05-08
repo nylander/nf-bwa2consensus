@@ -105,9 +105,18 @@ $ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
 $ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
 ```
 
+Note: the option `--mafft` should not be used for a run with a "mixed" fasta
+reference: sequences are concatenated before the MSA and can therefore create
+chimeric output in this case.
+
 ### Remove output
 
     $ make clean
+
+## Issues
+
+The process involving `fastp` may occasionally stall the workflow. Try to abort
+(`Ctrl+C`) and then run again with the `nextflow run -resume` option.
 
 ## License
 
