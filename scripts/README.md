@@ -77,3 +77,29 @@ options:
   -d MAXDEL, --maxdel MAXDEL
                         Ignore deletions longer than this value, default=150
 ```
+
+## concatenate_mixed_marker_output.py
+
+Map fastq sequences to reference using bwa mem, calculate consensus sequence
+using samtools consensus and/or bcftools.
+
+Concatenate marker-specific fasta files into one fasta file per marker.
+Note: fasta headers need to have labels following a specific format. For
+example: `>... [ref:PV424158.1|ITS|1]`.
+
+[MIT License](../LICENSE)
+
+```
+usage: concatenate_mixed_marker_output.py [-h] input_folder output_folder
+
+Concatenate marker-specific fasta files into one fasta file per marker.
+Note: fasta headers need to have labels following a specific format. For
+example: >... [ref:PV424158.1|ITS|1]
+
+positional arguments:
+  input_folder   Path to the input folder containing fasta files
+  output_folder  Path to the output folder where fasta files will be saved
+
+options:
+  -h, --help     show this help message and exit
+```

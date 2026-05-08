@@ -107,7 +107,9 @@ $ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
 
 Note: the option `--mafft` should not be used for a run with a "mixed" fasta
 reference: sequences are concatenated before the MSA and can therefore create
-chimeric output in this case.
+chimeric output in this case. The output from a run "mixed fasta" run can,
+however, be parsed using the script
+[`concatenate_mixed_marker_output.py`](scripts/READEM.md).
 
 ### Remove output
 
