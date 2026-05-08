@@ -25,7 +25,7 @@ See [Run-examples](#run) below.
 ## Output
 
 An output directory containing (Example. See also output from [single sample
-run](# single sample) below):
+run](#single-sample) below):
 
     output/
     ├── consensus
