@@ -87,19 +87,19 @@ single/
     └── S1009.aln.fasta
 ```
 
-### two samples, same reference
+### two samples, same reference (see [samples.csv](input/samples.csv))
 
 ```
 $ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
-### three samples, different references
+### three samples, different references (see [samples-28s-coi.csv](input/samples-28s-coi.csv))
 
 ```
 $ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
 ```
 
-### three samples, different references in one multi-fasta file
+### three samples, different references in one multi-fasta file (see [samples-mixed-ref.csv](input/samples-mixed-ref.csv))
 
 ```
 $ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
