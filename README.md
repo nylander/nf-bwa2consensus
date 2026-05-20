@@ -8,7 +8,7 @@ consensus`](https://samtools.github.io/bcftools/howtos/consensus-sequence.html))
 Input (Illumina fastq) can optionally be filtered using
 [fastp](https://github.com/opengene/fastp).
 
-Tested using [nextflow](https://www.nextflow.io/) version 25.10.4.11173.
+Tested using [nextflow](https://www.nextflow.io/) version 26.04.1.12112.
 
 A python script for accomplishing basically the same task for individual
 samples are located in [scripts/bwa2consensus.py](scripts/bwa2consensus.py).
