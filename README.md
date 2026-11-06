@@ -29,14 +29,15 @@ run](#single-sample) below):
 
     output/
     ├── consensus
-    │   ├── matK.fas
     │   ├── Apa.bcftools.fasta
-    │   ├── Apa.samtools_a.fasta
+    │   ├── Apa.fasta
+    │   ├── Apa.samtools-a.fasta
     │   ├── Apa.samtools.fasta
-    │   └── Apa.samtools_iupac.fasta
+    │   ├── Apa.samtools-iupac.fasta
+    │   └── matK.fas
     └── depth
-        ├── matK.fas
-        └── Apa.depth.tsv
+        ├── Apa.depth.tsv
+        └── matK.fas
 
 ## Run
 
@@ -66,18 +67,18 @@ different consensus variants:
 ```
 single/
 ├── bam
-│   ├── matK.fas
-│   └── Apa.bam
+│   ├── Apa.bam
+│   └── matK.fas
 ├── consensus
-│   ├── matK.fas
 │   ├── Apa.bcftools.fasta
 │   ├── Apa.fasta
 │   ├── Apa.samtools-a.fasta
 │   ├── Apa.samtools.fasta
-│   └── Apa.samtools-iupac.fasta
+│   ├── Apa.samtools-iupac.fasta
+│   └── matK.fas
 ├── depth
-│   ├── matK.fas
-│   └── Apa.depth.tsv
+│   ├── Apa.depth.tsv
+│   └── matK.fas
 ├── fastp
 │   ├── Apa_1.trimmed.fastq.gz
 │   ├── Apa_2.trimmed.fastq.gz
@@ -90,7 +91,7 @@ single/
 ### three samples, different references (see [samples-matK-trnLF.csv](input/samples-matK-trnLF.csv))
 
 ```
-$ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
+$ nextflow run main.nf --samplesheet input/samples-matK-trnlF.csv
 ```
 
 ### three samples, different references in one multi-fasta file (see [samples-mixed-ref.csv](input/samples-mixed-ref.csv))
