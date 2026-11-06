@@ -91,7 +91,7 @@ single/
 ### three samples, different references (see [samples-matK-trnLF.csv](input/samples-matK-trnLF.csv))
 
 ```
-$ nextflow run main.nf --samplesheet input/samples-matK-trnlF.csv
+$ nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv
 ```
 
 ### three samples, different references in one multi-fasta file (see [samples-mixed-ref.csv](input/samples-mixed-ref.csv))

@@ -3,4 +3,4 @@ Apa,input/fastq/S14_1001_01_R1.fq.gz,input/fastq/S14_1001_01_R2.fq.gz,input/refe
 Bpa,input/fastq/S59_1001_01_R1.fq.gz,input/fastq/S59_1001_01_R2.fq.gz,input/reference/trnLF.fas
 Bpa,input/fastq/S59_1001_02_R1.fq.gz,input/fastq/S59_1001_02_R2.fq.gz,input/reference/trnLF.fas
 Cpa,input/fastq/S59_1002_01_R1.fq.gz,input/fastq/S59_1002_01_R2.fq.gz,input/reference/trnLF.fas
-Cpa,input/fastq/S59_1002_02_R1.fq.gz,input/fastq/S59_1002_02_R2.fq.gz,input/reference/trnlF.fas
+Cpa,input/fastq/S59_1002_02_R1.fq.gz,input/fastq/S59_1002_02_R2.fq.gz,input/reference/trnLF.fas
