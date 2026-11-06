@@ -1,3 +1,6 @@
 sample,fastq1,fastq2,ref
-S1009,input/fastq/S1009_R1.fq.gz,input/fastq/S1009_R2.fq.gz,input/reference/28S.fas
-S1011,input/fastq/S1011_R1.fq.gz,input/fastq/S1011_R2.fq.gz,input/reference/28S.fas
+Apa,input/fastq/S14_1001_01_R1.fq.gz,input/fastq/S14_1001_01_R2.fq.gz,input/reference/mix.fas
+Bpa,input/fastq/S59_1001_01_R1.fq.gz,input/fastq/S59_1001_01_R2.fq.gz,input/reference/mix.fas
+Bpa,input/fastq/S59_1001_02_R1.fq.gz,input/fastq/S59_1001_02_R2.fq.gz,input/reference/mix.fas
+Cpa,input/fastq/S59_1002_01_R1.fq.gz,input/fastq/S59_1002_01_R2.fq.gz,input/reference/mix.fas
+Cpa,input/fastq/S59_1002_02_R1.fq.gz,input/fastq/S59_1002_02_R2.fq.gz,input/reference/mix.fas

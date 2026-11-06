@@ -29,14 +29,14 @@ run](#single-sample) below):
 
     output/
     ├── consensus
-    │   ├── 28S.fas
-    │   ├── S1009.bcftools.fasta
-    │   ├── S1009.samtools_a.fasta
-    │   ├── S1009.samtools.fasta
-    │   └── S1009.samtools_iupac.fasta
+    │   ├── matK.fas
+    │   ├── Apa.bcftools.fasta
+    │   ├── Apa.samtools_a.fasta
+    │   ├── Apa.samtools.fasta
+    │   └── Apa.samtools_iupac.fasta
     └── depth
-        ├── 28S.fas
-        └── S1009.depth.tsv
+        ├── matK.fas
+        └── Apa.depth.tsv
 
 ## Run
 
@@ -44,10 +44,10 @@ run](#single-sample) below):
 
 ```
 $ nextflow run main.nf \
-   --fastq1='input/fastq/S1009_R1.fq.gz' \
-   --fastq2='input/fastq/S1009_R2.fq.gz' \
-   --prefix='S1009' \
-   --ref='input/reference/28S.fas' \
+   --fastq1='input/fastq/S14_1001_R1.fq.gz' \
+   --fastq2='input/fastq/S14_1001_R2.fq.gz' \
+   --prefix='Apa' \
+   --ref='input/reference/matK.fas' \
    --outdir='single' \
    --threads=8 \
    --mindepth=2 \
@@ -66,26 +66,29 @@ different consensus variants:
 ```
 single/
 ├── bam
-│   ├── 28S.fas
-│   └── S1009.bam
+│   ├── matK.fas
+│   └── Apa.bam
 ├── consensus
-│   ├── 28S.fas
-│   ├── S1009.bcftools.fasta
-│   ├── S1009.fasta
-│   ├── S1009.samtools-a.fasta
-│   ├── S1009.samtools.fasta
-│   └── S1009.samtools-iupac.fasta
+│   ├── matK.fas
+│   ├── Apa.bcftools.fasta
+│   ├── Apa.fasta
+│   ├── Apa.samtools-a.fasta
+│   ├── Apa.samtools.fasta
+│   └── Apa.samtools-iupac.fasta
 ├── depth
-│   ├── 28S.fas
-│   └── S1009.depth.tsv
+│   ├── matK.fas
+│   └── Apa.depth.tsv
 ├── fastp
-│   ├── S1009_1.trimmed.fastq.gz
-│   ├── S1009_2.trimmed.fastq.gz
-│   ├── S1009.fastp.html
-│   └── S1009.fastp.json
+│   ├── Apa_1.trimmed.fastq.gz
+│   ├── Apa_2.trimmed.fastq.gz
+│   ├── Apa.fastp.html
+│   └── Apa.fastp.json
 └── mafft
-    └── S1009.aln.fasta
+    └── Apa.aln.fasta
 ```
+
+
+*Note 2026-11-06 17:19:01: the section below is not updated with new file names*
 
 ### two samples, same reference (see [samples.csv](input/samples.csv))
 

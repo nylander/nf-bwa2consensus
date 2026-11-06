@@ -1,4 +1,0 @@
-sample,fastq1,fastq2,ref
-S1009,input/fastq/S1009_R1.fq.gz,input/fastq/S1009_R2.fq.gz,input/reference/28S.fas
-S1010,input/fastq/S1010_R1.fq.gz,input/fastq/S1010_R2.fq.gz,input/reference/COI.fas
-S1011,input/fastq/S1011_R1.fq.gz,input/fastq/S1011_R2.fq.gz,input/reference/COI.fas
