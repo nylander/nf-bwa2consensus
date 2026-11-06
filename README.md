@@ -29,14 +29,15 @@ run](#single-sample) below):
 
     output/
     ├── consensus
-    │   ├── 28S.fas
-    │   ├── S1009.bcftools.fasta
-    │   ├── S1009.samtools_a.fasta
-    │   ├── S1009.samtools.fasta
-    │   └── S1009.samtools_iupac.fasta
+    │   ├── Apa.bcftools.fasta
+    │   ├── Apa.fasta
+    │   ├── Apa.samtools-a.fasta
+    │   ├── Apa.samtools.fasta
+    │   ├── Apa.samtools-iupac.fasta
+    │   └── matK.fas
     └── depth
-        ├── 28S.fas
-        └── S1009.depth.tsv
+        ├── Apa.depth.tsv
+        └── matK.fas
 
 ## Run
 
@@ -44,10 +45,10 @@ run](#single-sample) below):
 
 ```
 $ nextflow run main.nf \
-   --fastq1='input/fastq/S1009_R1.fq.gz' \
-   --fastq2='input/fastq/S1009_R2.fq.gz' \
-   --prefix='S1009' \
-   --ref='input/reference/28S.fas' \
+   --fastq1='input/fastq/S14_1001_01_R1.fq.gz' \
+   --fastq2='input/fastq/S14_1001_01_R2.fq.gz' \
+   --prefix='Apa' \
+   --ref='input/reference/matK.fas' \
    --outdir='single' \
    --threads=8 \
    --mindepth=2 \
@@ -66,50 +67,44 @@ different consensus variants:
 ```
 single/
 ├── bam
-│   ├── 28S.fas
-│   └── S1009.bam
+│   ├── Apa.bam
+│   └── matK.fas
 ├── consensus
-│   ├── 28S.fas
-│   ├── S1009.bcftools.fasta
-│   ├── S1009.fasta
-│   ├── S1009.samtools-a.fasta
-│   ├── S1009.samtools.fasta
-│   └── S1009.samtools-iupac.fasta
+│   ├── Apa.bcftools.fasta
+│   ├── Apa.fasta
+│   ├── Apa.samtools-a.fasta
+│   ├── Apa.samtools.fasta
+│   ├── Apa.samtools-iupac.fasta
+│   └── matK.fas
 ├── depth
-│   ├── 28S.fas
-│   └── S1009.depth.tsv
+│   ├── Apa.depth.tsv
+│   └── matK.fas
 ├── fastp
-│   ├── S1009_1.trimmed.fastq.gz
-│   ├── S1009_2.trimmed.fastq.gz
-│   ├── S1009.fastp.html
-│   └── S1009.fastp.json
+│   ├── Apa_1.trimmed.fastq.gz
+│   ├── Apa_2.trimmed.fastq.gz
+│   ├── Apa.fastp.html
+│   └── Apa.fastp.json
 └── mafft
-    └── S1009.aln.fasta
+    └── Apa.aln.fasta
 ```
 
-### two samples, same reference (see [samples.csv](input/samples.csv))
+### three samples, different references (see [samples-matK-trnLF.csv](input/samples-matK-trnLF.csv))
+
+```
+$ nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv
+```
+
+### three samples, different references in one multi-fasta file (see [samples.csv](input/samples.csv))
 
 ```
 $ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
-### three samples, different references (see [samples-28s-coi.csv](input/samples-28s-coi.csv))
-
-```
-$ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
-```
-
-### three samples, different references in one multi-fasta file (see [samples-mixed-ref.csv](input/samples-mixed-ref.csv))
-
-```
-$ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
-```
-
-Note: the option `--mafft` should not be used for a run with a "mixed" fasta
+**Note**: the option `--mafft` should not be used for a run with a "mixed" fasta
 reference: sequences are concatenated before the MSA and can therefore create
 chimeric output in this case. The output from a run "mixed fasta" run can,
 however, be parsed using the script
-[`concatenate_mixed_marker_output.py`](scripts/READEM.md).
+[`concatenate_mixed_marker_output.py`](scripts/README.md).
 
 ### Remove output
 

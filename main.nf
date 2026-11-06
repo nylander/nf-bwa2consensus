@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-04-27 16:46:20
+- Last modified: 2026-11-06 15:04:30
 - Sign: JN
 */
 
@@ -36,6 +36,18 @@ workflow {
 
         tuple(sample, r1, r2, file(refPath))
       }
+      .groupTuple(by: 0)
+      .map { sample, r1s, r2s, refs ->
+        def uniqueRefs = refs.collect { it.toRealPath() }.unique()
+
+        if( uniqueRefs.size() != 1 )
+          error "Sample '${sample}' has multiple references. Use a distinct sample name for each reference."
+
+        tuple(sample, r1s, r2s, uniqueRefs[0])
+      }
+
+    ch_samples = MERGE_FASTQ(ch_samples)
+
   }
   else if( params.fastq1 && params.fastq2 && params.prefix ) {
     if( !params.ref ) error "Missing --ref (single-sample mode)"
@@ -416,3 +428,46 @@ process FASTP {
     ${params.fastp_args}
   """
 }
+
+process MERGE_FASTQ {
+  tag { sample_id }
+
+  input:
+    tuple val(sample_id),
+          path(r1s, stageAs: 'r1_lane??/*'),
+          path(r2s, stageAs: 'r2_lane??/*'),
+          path(ref)
+
+  output:
+    tuple val(sample_id),
+          path('merged_R1.fastq'),
+          path('merged_R2.fastq'),
+          path(ref)
+
+  script:
+    def quote = { p ->
+      "'" + p.toString().replace("'", "'\"'\"'") + "'"
+    }
+    def r1Files = (r1s instanceof List ? r1s : [r1s]).collect { quote.call(it) }.join(' ')
+    def r2Files = (r2s instanceof List ? r2s : [r2s]).collect { quote.call(it) }.join(' ')
+
+  """
+  set -euo pipefail
+
+  merge_reads() {
+    local output="\$1"
+    shift
+    local read
+    for read in "\$@"; do
+      case "\$read" in
+        *.gz) gzip -cd -- "\$read" ;;
+        *)    cat -- "\$read" ;;
+      esac
+    done > "\$output"
+  }
+
+  merge_reads merged_R1.fastq ${r1Files}
+  merge_reads merged_R2.fastq ${r2Files}
+  """
+}
+
