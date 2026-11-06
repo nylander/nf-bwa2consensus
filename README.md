@@ -87,16 +87,7 @@ single/
     └── Apa.aln.fasta
 ```
 
-
-*Note 2026-11-06 17:19:01: the section below is not updated with new file names*
-
-### two samples, same reference (see [samples.csv](input/samples.csv))
-
-```
-$ nextflow run main.nf --samplesheet input/samples.csv
-```
-
-### three samples, different references (see [samples-28s-coi.csv](input/samples-28s-coi.csv))
+### three samples, different references (see [samples-matK-trnLF.csv](input/samples-matK-trnLF.csv))
 
 ```
 $ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
@@ -105,14 +96,14 @@ $ nextflow run main.nf --samplesheet input/samples-28s-coi.csv
 ### three samples, different references in one multi-fasta file (see [samples-mixed-ref.csv](input/samples-mixed-ref.csv))
 
 ```
-$ nextflow run main.nf --samplesheet input/samples-mixed-ref.csv
+$ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
-Note: the option `--mafft` should not be used for a run with a "mixed" fasta
+**Note**: the option `--mafft` should not be used for a run with a "mixed" fasta
 reference: sequences are concatenated before the MSA and can therefore create
 chimeric output in this case. The output from a run "mixed fasta" run can,
 however, be parsed using the script
-[`concatenate_mixed_marker_output.py`](scripts/READEM.md).
+[`concatenate_mixed_marker_output.py`](scripts/README.md).
 
 ### Remove output
 
