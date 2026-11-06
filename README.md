@@ -44,8 +44,8 @@ run](#single-sample) below):
 
 ```
 $ nextflow run main.nf \
-   --fastq1='input/fastq/S14_1001_R1.fq.gz' \
-   --fastq2='input/fastq/S14_1001_R2.fq.gz' \
+   --fastq1='input/fastq/S14_1001_01_R1.fq.gz' \
+   --fastq2='input/fastq/S14_1001_01_R2.fq.gz' \
    --prefix='Apa' \
    --ref='input/reference/matK.fas' \
    --outdir='single' \
