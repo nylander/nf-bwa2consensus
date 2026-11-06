@@ -448,8 +448,8 @@ process MERGE_FASTQ {
     def quote = { p ->
       "'" + p.toString().replace("'", "'\"'\"'") + "'"
     }
-    def r1Files = r1s.collect { quote(it) }.join(' ')
-    def r2Files = r2s.collect { quote(it) }.join(' ')
+    def r1Files = (r1s instanceof List ? r1s : [r1s]).collect { quote.call(it) }.join(' ')
+    def r2Files = (r2s instanceof List ? r2s : [r2s]).collect { quote.call(it) }.join(' ')
 
   """
   set -euo pipefail
