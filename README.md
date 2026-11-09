@@ -100,6 +100,15 @@ $ nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv
 $ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
+For multiple read pairs per sample, repeat the sample name and reference on
+each CSV row. All R1 files for a sample are merged together, and all R2 files
+are merged together, before optional fastp filtering. A sample must use a
+single reference file.
+
+For example, 55 samples with two read pairs each produce 55 merged read pairs
+(110 FASTQ files), 55 FASTP tasks when `--fastp` is enabled, and 55 BWA_MEM
+tasks. BWA_INDEX runs once per distinct reference file, not once per sample.
+
 **Note**: the option `--mafft` should not be used for a run with a "mixed" fasta
 reference: sequences are concatenated before the MSA and can therefore create
 chimeric output in this case. The output from a run "mixed fasta" run can,
@@ -114,6 +123,18 @@ however, be parsed using the script
 
 The process involving `fastp` may occasionally stall the workflow. Try to abort
 (`Ctrl+C`) and then run again with the `nextflow run -resume` option.
+
+## Workflow regression tests
+
+With Nextflow and a supported Java runtime installed, run:
+
+```
+python3 -m unittest discover -s tests -v
+```
+
+These tests run the workflow with lightweight stand-ins for the bioinformatics
+tools to check channel wiring, task counts, and lane merging. They do not
+validate biological results or require Conda environments.
 
 ## License
 
