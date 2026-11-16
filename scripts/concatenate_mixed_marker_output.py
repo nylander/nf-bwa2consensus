@@ -17,18 +17,22 @@ import os
 import re
 from collections import defaultdict
 
-def parse_fasta_files(input_folder):
+
+DEFAULT_EXCLUDED_SUFFIXES = (
+    ".bcftools.fasta",
+    ".samtools-a.fasta",
+    ".samtools.fasta",
+    ".samtools-iupac.fasta",
+    ".samtools-a-iupac.fasta",
+)
+
+
+def parse_fasta_files(input_folder, suffix=None):
     records = defaultdict(list)
     ref_pattern = re.compile(r"\[ref:(.+?)\]")
     for filename in os.listdir(input_folder):
-        if filename.endswith(".fasta") and not any(
-            filename.endswith(suffix)
-            for suffix in [
-                ".bcftools.fasta",
-                ".samtools-a.fasta",
-                ".samtools.fasta",
-                ".samtools-iupac.fasta",
-            ]
+        if filename.endswith(".fasta" if suffix is None else suffix) and not (
+            suffix is None and filename.endswith(DEFAULT_EXCLUDED_SUFFIXES)
         ):
             with open(os.path.join(input_folder, filename), "r") as file:
                 current_key = None
@@ -75,9 +79,9 @@ def main():
             Concatenate marker-specific fasta files into one fasta file per marker.
             Fasta headers need to have labels following a specific format.
             For example: ">... [ref:PV424158.1|ITS|1]".
-            Current version searches input_folder for files with suffix .fasta but
-            ignores files with suffixes .bcftools.fasta, .samtools-a.fasta,
-            .samtools.fasta, .samtools-iupac.fasta.
+            By default, reads .fasta files except those ending in .bcftools.fasta,
+            .samtools-a.fasta, .samtools.fasta, .samtools-iupac.fasta, or
+            .samtools-a-iupac.fasta. An explicit --suffix disables these exclusions.
             '''
         ),formatter_class=argparse.RawTextHelpFormatter
     )
@@ -85,8 +89,10 @@ def main():
                         help="Path to the input folder containing fasta files")
     parser.add_argument("output_folder",
                         help="Path to the output folder where fasta files will be saved")
+    parser.add_argument("--suffix",
+                        help="Read all files ending in this suffix (default: .fasta with exclusions)")
     args = parser.parse_args()
-    records = parse_fasta_files(args.input_folder)
+    records = parse_fasta_files(args.input_folder, args.suffix)
     write_output_files(records, args.output_folder)
 
 if __name__ == "__main__":

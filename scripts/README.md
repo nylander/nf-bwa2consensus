@@ -95,19 +95,21 @@ example: `>... [ref:PV424158.1|ITS|1]`.
 ### Usage and options
 
 ```
-usage: concatenate_mixed_marker_output.py [-h] input_folder output_folder
+usage: concatenate_mixed_marker_output.py [-h] [--suffix SUFFIX]
+                                          input_folder output_folder
 
 Concatenate marker-specific fasta files into one fasta file per marker.
 Fasta headers need to have labels following a specific format.
 For example: ">... [ref:PV424158.1|ITS|1]".
-Current version searches input_folder for files with suffix .fasta but
-ignores files with suffixes .bcftools.fasta, .samtools-a.fasta,
-.samtools.fasta, .samtools-iupac.fasta.
+By default, reads .fasta files except those ending in .bcftools.fasta,
+.samtools-a.fasta, .samtools.fasta, .samtools-iupac.fasta, or
+.samtools-a-iupac.fasta. An explicit --suffix disables these exclusions.
 
 positional arguments:
-  input_folder   Path to the input folder containing fasta files
-  output_folder  Path to the output folder where fasta files will be saved
+  input_folder     Path to the input folder containing fasta files
+  output_folder    Path to the output folder where fasta files will be saved
 
 options:
-  -h, --help     show this help message and exit
+  -h, --help       show this help message and exit
+  --suffix SUFFIX  Read all files ending in this suffix (default: .fasta with exclusions)
 ```
