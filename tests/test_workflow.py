@@ -16,8 +16,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 NEXTFLOW = shutil.which("nextflow")
+MULTIQC = shutil.which("multiqc")
 TOOL = r"""#!/usr/bin/env python3
 import gzip
+import json
 from pathlib import Path
 import shutil
 import sys
@@ -39,7 +41,15 @@ elif tool == "fastp":
         with open(value("--in" + read), "rb") as source:
             with gzip.open(value("--out" + read), "wb") as target:
                 shutil.copyfileobj(source, target)
-    Path(value("--json")).write_text("{}")
+    Path(value("--json")).write_text(json.dumps({
+        "command": "fastp " + " ".join(args),
+        "summary": {
+            "fastp_version": "1.3.2",
+            "before_filtering": {"total_reads": 4},
+            "after_filtering": {"total_reads": 4},
+        },
+        "filtering_result": {"passed_filter_reads": 4},
+    }))
     Path(value("--html")).write_text("<html></html>")
 elif tool == "samtools":
     if args[0] == "sort":
@@ -206,6 +216,20 @@ class WorkflowTest(unittest.TestCase):
 
     def test_multiple_references_with_fastp(self):
         self.check_multiple_references(fastp=True)
+
+    @unittest.skipUnless(MULTIQC, "MultiQC is required for sample-naming regression")
+    def test_multiqc_preserves_sample_names(self):
+        (self.directory / "bin" / "multiqc").unlink()
+        sheet, _ = self.fixtures(3)
+        trace = self.run_workflow(["--samplesheet", str(sheet), "--fastp"])
+        self.assertEqual(sum(task["name"] == "MULTIQC" for task in trace), 1)
+        output = self.directory / "output" / "multiqc"
+        self.assertTrue((output / "multiqc_report.html").is_file())
+        with (output / "multiqc_data" / "multiqc_fastp.txt").open() as handle:
+            data = {row["Sample"]: row for row in csv.DictReader(handle, delimiter="\t")}
+        self.assertEqual(set(data), {"sample00", "sample01", "sample02"})
+        for report in data.values():
+            self.assertIn("--in1 merged_R1.fastq --in2 merged_R2.fastq", report["command"])
 
     def test_single_sample_fastp(self):
         _, rows = self.fixtures(1)
