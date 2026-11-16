@@ -79,7 +79,7 @@ workflow {
     }
 
     def ch_fastp = FASTP(
-      ch_reads_for_fastp.map {sample, r1, r2 -> tuple(sample, r1, r2)}
+      ch_reads_for_fastp.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2) }
     )
 
     if (params.multiqc) {
