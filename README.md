@@ -115,6 +115,14 @@ For example, 55 samples with two read pairs each produce 55 merged read pairs
 (110 FASTQ files), 55 `FASTP` tasks when `--fastp` is enabled, and 55 `BWA_MEM`
 tasks. `BWA_INDEX` runs once per distinct reference file, not once per sample.
 
+Consensus methods are selected with the `bcftools_consensus`,
+`samtools_a_consensus`, `samtools_iupac_consensus`, and
+`samtools_a_iupac_consensus` parameters (all enabled by default; set to `false`
+in `nextflow.config` to disable).
+The combined `<sample>.fasta` is produced only when at least two methods are
+enabled. With a single method, only its method-specific FASTA is produced.
+`--mafft` requires at least two enabled consensus methods.
+
 **Note**: the option `--mafft` should *not* be used for a run with a "mixed"
 fasta reference: sequences are concatenated before the MSA and can therefore
 create chimeric output in this case. The output from a "mixed fasta" run can,
