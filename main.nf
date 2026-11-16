@@ -464,7 +464,7 @@ process MULTIQC {
 
     script:
     """
-    multiqc .
+    multiqc . --cl-config 'use_filename_as_sample_name: [fastp]'
     """
 }
 
