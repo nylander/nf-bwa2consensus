@@ -2,4 +2,5 @@ private/
 *.swp
 work/
 output/
+tests/__pycache__/
 .nextflow*
