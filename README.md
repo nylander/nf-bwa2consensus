@@ -109,10 +109,10 @@ For example, 55 samples with two read pairs each produce 55 merged read pairs
 (110 FASTQ files), 55 FASTP tasks when `--fastp` is enabled, and 55 BWA_MEM
 tasks. BWA_INDEX runs once per distinct reference file, not once per sample.
 
-**Note**: the option `--mafft` should not be used for a run with a "mixed" fasta
-reference: sequences are concatenated before the MSA and can therefore create
-chimeric output in this case. The output from a run "mixed fasta" run can,
-however, be parsed using the script
+**Note**: the option `--mafft` should *not* be used for a run with a "mixed"
+fasta reference: sequences are concatenated before the MSA and can therefore
+create chimeric output in this case. The output from a "mixed fasta" run can,
+however, be parsed and sorted using the script
 [`concatenate_mixed_marker_output.py`](scripts/README.md).
 
 ### Remove output
