@@ -6,7 +6,9 @@ consensus`](https://github.com/samtools/samtools) and [`bcftools
 consensus`](https://samtools.github.io/bcftools/howtos/consensus-sequence.html)).
 
 Input (Illumina fastq) can optionally be filtered using
-[fastp](https://github.com/opengene/fastp).
+[fastp](https://github.com/opengene/fastp). With `--fastp`, a combined MultiQC
+report is written to `output/multiqc/` (or `<outdir>/multiqc/` when using
+`--outdir`).
 
 Tested using [nextflow](https://www.nextflow.io/) version 26.04.1.12112.
 

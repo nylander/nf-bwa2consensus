@@ -69,6 +69,13 @@ elif tool == "bcftools":
         raise SystemExit("Unexpected bcftools arguments: " + repr(args))
 elif tool == "mafft":
     sys.stdout.write(Path(args[-1]).read_text())
+elif tool == "multiqc":
+    reports = sorted(path.name for path in Path(".").glob("*.fastp.json"))
+    if not reports:
+        raise SystemExit("No fastp JSON reports staged for MultiQC")
+    Path("multiqc_report.html").write_text("<html></html>")
+    Path("multiqc_data").mkdir()
+    Path("multiqc_data/reports.txt").write_text("\n".join(reports) + "\n")
 else:
     raise SystemExit("Unexpected tool: " + tool)
 """
@@ -85,7 +92,7 @@ class WorkflowTest(unittest.TestCase):
         executable = tools / "mock-tool"
         executable.write_text(TOOL)
         executable.chmod(0o755)
-        for tool in ("bwa", "fastp", "samtools", "bcftools", "mafft"):
+        for tool in ("bwa", "fastp", "samtools", "bcftools", "mafft", "multiqc"):
             (tools / tool).symlink_to(executable)
         self.env = dict(os.environ, PATH=f"{tools}{os.pathsep}{os.environ['PATH']}")
         (self.directory / "test.config").write_text(
@@ -150,6 +157,7 @@ class WorkflowTest(unittest.TestCase):
             expected["MERGE_FASTQ"] = samples
         if fastp:
             expected["FASTP"] = samples
+            expected["MULTIQC"] = 1
         if mafft:
             expected.update(GATHER_SEQS_FOR_MAFFT=samples, MAFFT_ALIGN=samples)
         actual = {}
@@ -161,6 +169,15 @@ class WorkflowTest(unittest.TestCase):
         for index in range(samples):
             fasta = self.directory / "output" / "consensus" / f"sample{index:02}.fasta"
             self.assertEqual(fasta.read_text().count(">"), 4)
+        multiqc_output = self.directory / "output" / "multiqc"
+        if fastp:
+            self.assertTrue((multiqc_output / "multiqc_report.html").is_file())
+            self.assertEqual(
+                (multiqc_output / "multiqc_data" / "reports.txt").read_text().splitlines(),
+                [f"sample{index:02}.fastp.json" for index in range(samples)],
+            )
+        else:
+            self.assertFalse(multiqc_output.exists())
 
     def test_55_samples_two_lanes_fastp(self):
         sheet, _ = self.fixtures(55)
