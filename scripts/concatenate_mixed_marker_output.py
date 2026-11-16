@@ -12,6 +12,7 @@ fasta headers need to have labels following a specific format. For example:
 """
 
 import argparse
+import textwrap
 import os
 import re
 from collections import defaultdict
@@ -70,13 +71,15 @@ def write_output_files(records, output_folder):
 
 def main():
     parser = argparse.ArgumentParser(
-        description=(
-            "Concatenate marker-specific fasta files into one fasta file per marker.\n"
-            "Note: fasta headers need to have labels following a specific format.\n"
-            "For example: >... [ref:PV424158.1|ITS|1]\n"
-            "Current version searches input folder fo files suffixes:\n"
-            ".bcftools.fasta, .samtools-a.fasta, .samtools.fasta, .samtools-iupac.fasta"
-        )
+        description=textwrap.dedent('''
+            Concatenate marker-specific fasta files into one fasta file per marker.
+            Fasta headers need to have labels following a specific format.
+            For example: ">... [ref:PV424158.1|ITS|1]".
+            Current version searches input_folder for files with suffix .fasta but
+            ignores files with suffixes .bcftools.fasta, .samtools-a.fasta,
+            .samtools.fasta, .samtools-iupac.fasta.
+            '''
+        ),formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("input_folder",
                         help="Path to the input folder containing fasta files")
