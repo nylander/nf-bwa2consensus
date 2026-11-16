@@ -87,8 +87,11 @@ single/
 │   ├── Apa_2.trimmed.fastq.gz
 │   ├── Apa.fastp.html
 │   └── Apa.fastp.json
-└── mafft
-    └── Apa.aln.fasta
+├── mafft
+│   └── Apa.aln.fasta
+└── multiqc
+    ├── multiqc_data
+    └── multiqc_report.html
 ```
 
 ### three samples, different references (see [samples-matK-trnLF.csv](input/samples-matK-trnLF.csv))
@@ -132,7 +135,7 @@ The process involving `fastp` may occasionally stall the workflow. Try to abort
 With Nextflow and a supported Java runtime installed, run:
 
 ```
-python3 -m unittest discover -s tests -v
+make regression-test
 ```
 
 These tests run the workflow with lightweight stand-ins for the bioinformatics
