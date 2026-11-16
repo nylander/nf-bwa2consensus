@@ -1,4 +1,5 @@
 private/
 *.swp
 work/
+output/
 .nextflow*
