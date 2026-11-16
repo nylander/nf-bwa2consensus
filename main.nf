@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-16 10:06:50
+- Last modified: 2026-11-16 10:14:24
 - Sign: JN
 */
 
@@ -74,7 +74,13 @@ workflow {
   def ch_for_bwa
 
   if( params.fastp ) {
-    def ch_fastp = FASTP(ch_reads_for_fastp.map { sample, r1, r2 -> tuple(sample, r1, r2) })
+    def ch_reads_for_fastp = ch_joined.map {
+      sample, r1, r2, ref, refdir -> tuple(sample, r1, r2, ref, refdir)
+    }
+
+    def ch_fastp = FASTP(
+      ch_reads_for_fastp.map {sample, r1, r2 -> tuple(sample, r1, r2)}
+    )
 
     if (params.multiqc) {
       MULTIQC(ch_fastp.json.map { sample, json -> json }.collect())
