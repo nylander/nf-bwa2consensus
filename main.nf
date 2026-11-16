@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-16 10:14:24
+- Last modified: 2026-11-16 16:51:07
 - Sign: JN
 */
 
@@ -82,7 +82,7 @@ workflow {
       ch_reads_for_fastp.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2) }
     )
 
-    if (params.multiqc) {
+    if ( params.multiqc ) {
       MULTIQC(ch_fastp.json.map { sample, json -> json }.collect())
     }
 
@@ -101,26 +101,60 @@ workflow {
 
   ch_bam_indexed = SAMTOOLS_INDEX_BAM(ch_bam)
 
-  def ch_samtools_consensus = SAMTOOLS_CONSENSUS(ch_bam_indexed)
-  def ch_samtools_consensus_a = SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
-  def ch_samtools_consensus_iupac = SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
-  ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_bam_indexed)
-  ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
-  def ch_bcftools_consensus = BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
+  def ch_consensus_outputs = []
 
-  def ch_concat_input = ch_samtools_consensus
-    .join(
-      ch_samtools_consensus_a.map { sample_id, fasta, ref -> tuple(sample_id, fasta) },
-      by: 0, failOnDuplicate: true, failOnMismatch: true
+  if( params.samtools_a_consensus) {
+    ch_consensus_outputs.add(
+      SAMTOOLS_CONSENSUS_A(ch_bam_indexed)
+        .map { sample_id, fasta, ref -> tuple(sample_id, fasta, ref) }
     )
-    .join(
-      ch_samtools_consensus_iupac.map { sample_id, fasta, ref -> tuple(sample_id, fasta) },
-      by: 0, failOnDuplicate: true, failOnMismatch: true
-    )
-    .join(ch_bcftools_consensus, by: 0, failOnDuplicate: true, failOnMismatch: true)
-    .map { sid, f1, ref, f2, f3, f4 -> tuple(sid, f1, f2, f3, f4, ref) }
+  }
 
-  def ch_concat_out = CONCAT_CONSENSUS_FASTA(ch_concat_input)
+  if( params.samtools_iupac_consensus) {
+    ch_consensus_outputs.add(
+      SAMTOOLS_CONSENSUS_IUPAC(ch_bam_indexed)
+        .map { sample_id, fasta, ref -> tuple(sample_id, fasta, ref) }
+    )
+  }
+
+  if( params.samtools_a_iupac_consensus) {
+    ch_consensus_outputs.add(
+      SAMTOOLS_CONSENSUS_A_IUPAC(ch_bam_indexed)
+        .map { sample_id, fasta, ref -> tuple(sample_id, fasta, ref) }
+    )
+  }
+
+  if( params.bcftools_consensus) {
+    ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_bam_indexed)
+    ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
+    ch_consensus_outputs.add(
+      BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
+        .map { sample_id, fasta, ref -> tuple(sample_id, fasta, ref) }
+    )
+  }
+
+  if( params.mafft && ch_consensus_outputs.size() < 2 ) {
+    error "MAFFT requires at least two consensus methods to be enabled."
+  }
+
+  def ch_concat_out = Channel.empty()
+  if( ch_consensus_outputs.size() > 1 ) {
+    def ch_selected_consensus = ch_consensus_outputs.drop(1).inject(ch_consensus_outputs[0]) { combined, next ->
+      combined.mix(next)
+    }
+
+    def ch_concat_input = ch_selected_consensus
+      .groupTuple(by: 0)
+      .map { sample_id, fastas, refs ->
+        def uniqueRefs = refs.collect { it.toRealPath() }.unique()
+        if( uniqueRefs.size() != 1 )
+          error "Sample '${sample_id}' has multiple references in consensus outputs."
+
+        tuple(sample_id, fastas, uniqueRefs[0])
+      }
+
+    ch_concat_out = CONCAT_CONSENSUS_FASTA(ch_concat_input)
+  }
 
   if( params.mafft ) {
     def ch_for_mafft = GATHER_SEQS_FOR_MAFFT(ch_concat_out)
@@ -217,28 +251,28 @@ process SAMTOOLS_DEPTH {
 }
 
 
-process SAMTOOLS_CONSENSUS {
-  tag { sample_id }
-  publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
-
-  conda "bioconda::samtools=1.23.1"
-  container "oras://community.wave.seqera.io/library/samtools:1.23.1--5cb989b890127f7a"
-
-  input:
-  tuple val(sample_id), path(bam), path(bai), path(ref)
-
-  output:
-  tuple val(sample_id), path("${sample_id}.samtools.fasta"), path(ref)
-
-  script:
-  """
-  set -euo pipefail
-  samtools consensus --threads ${params.threads} ${bam} -o ${sample_id}.samtools.fasta
-  tmp=${sample_id}.samtools.fasta.tmp
-  sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta > "\$tmp"
-  mv "\$tmp" ${sample_id}.samtools.fasta
-  """
-}
+// process SAMTOOLS_CONSENSUS {
+//   tag { sample_id }
+//   publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
+// 
+//   conda "bioconda::samtools=1.23.1"
+//   container "oras://community.wave.seqera.io/library/samtools:1.23.1--5cb989b890127f7a"
+// 
+//   input:
+//   tuple val(sample_id), path(bam), path(bai), path(ref)
+// 
+//   output:
+//   tuple val(sample_id), path("${sample_id}.samtools.fasta"), path(ref)
+// 
+//   script:
+//   """
+//   set -euo pipefail
+//   samtools consensus --threads ${params.threads} ${bam} -o ${sample_id}.samtools.fasta
+//   tmp=${sample_id}.samtools.fasta.tmp
+//   sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta > "\$tmp"
+//   mv "\$tmp" ${sample_id}.samtools.fasta
+//   """
+// }
 
 
 process SAMTOOLS_CONSENSUS_A {
@@ -288,6 +322,29 @@ process SAMTOOLS_CONSENSUS_IUPAC {
   """
 }
 
+
+process SAMTOOLS_CONSENSUS_A_IUPAC {
+  tag { sample_id }
+  publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
+
+  conda "bioconda::samtools=1.23.1"
+  container "oras://community.wave.seqera.io/library/samtools:1.23.1--5cb989b890127f7a"
+
+  input:
+  tuple val(sample_id), path(bam), path(bai), path(ref)
+
+  output:
+  tuple val(sample_id), path("${sample_id}.samtools-a-iupac.fasta"), path(ref)
+
+  script:
+  """
+  set -euo pipefail
+  samtools consensus --threads ${params.threads} -a --ambig ${bam} -o ${sample_id}.samtools-a-iupac.fasta
+  tmp=${sample_id}.samtools-a-iupac.fasta.tmp
+  sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-a-iupac-consensus [ref:\\1]/" ${sample_id}.samtools-a-iupac.fasta > "\$tmp"
+  mv "\$tmp" ${sample_id}.samtools-a-iupac.fasta
+  """
+}
 
 process BCFTOOLS_MPILEUP_CALL {
   tag { sample_id }
@@ -343,7 +400,7 @@ process BCFTOOLS_CONSENSUS {
   tuple val(sample_id), path(vcfgz), path(csi), path(ref)
 
   output:
-  tuple val(sample_id), path("${sample_id}.bcftools.fasta")
+  tuple val(sample_id), path("${sample_id}.bcftools.fasta"), path(ref)
 
   script:
   """
@@ -362,7 +419,7 @@ process CONCAT_CONSENSUS_FASTA {
   publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
 
   input:
-    tuple val(sample_id), path(samtools_fa), path(samtools_a_fa), path(samtools_iupac_fa), path(bcftools_fa), path(ref)
+    tuple val(sample_id), path(consensus_fastas), path(ref)
 
   output:
     tuple val(sample_id), path("${sample_id}.fasta"), path(ref)
@@ -370,7 +427,7 @@ process CONCAT_CONSENSUS_FASTA {
   script:
   """
   set -euo pipefail
-  cat ${samtools_fa} ${samtools_a_fa} ${samtools_iupac_fa} ${bcftools_fa} > ${sample_id}.fasta
+  cat ${consensus_fastas} > ${sample_id}.fasta
   """
 }
 

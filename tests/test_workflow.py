@@ -108,6 +108,7 @@ class WorkflowTest(unittest.TestCase):
         (self.directory / "test.config").write_text(
             f"includeConfig '{ROOT / 'nextflow.config'}'\n"
             "conda.enabled = false\n"
+            "apptainer.enabled = false\n"
             "process.cpus = 1\n"
             "process.maxForks = 8\n"
             "executor.queueSize = 8\n"
@@ -141,7 +142,7 @@ class WorkflowTest(unittest.TestCase):
             writer.writerows(rows)
         return sheet, rows
 
-    def run_workflow(self, arguments):
+    def run_workflow(self, arguments, expected_error=None):
         result = subprocess.run(
             [NEXTFLOW, "-C", str(self.directory / "test.config"),
              "run", str(ROOT / "main.nf"), "-ansi-log", "false",
@@ -150,6 +151,10 @@ class WorkflowTest(unittest.TestCase):
             cwd=self.directory, env=self.env, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300,
         )
+        if expected_error is not None:
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn(expected_error, result.stdout)
+            return
         self.assertEqual(result.returncode, 0, result.stdout)
         with (self.directory / "trace.tsv").open() as handle:
             return list(csv.DictReader(handle, delimiter="\t"))
@@ -158,8 +163,10 @@ class WorkflowTest(unittest.TestCase):
         expected = {
             "BWA_INDEX": references, "BWA_MEM": samples,
             "SAMTOOLS_DEPTH": samples, "SAMTOOLS_INDEX_BAM": samples,
-            "SAMTOOLS_CONSENSUS": samples, "SAMTOOLS_CONSENSUS_A": samples,
-            "SAMTOOLS_CONSENSUS_IUPAC": samples, "BCFTOOLS_MPILEUP_CALL": samples,
+            "SAMTOOLS_CONSENSUS_A": samples,
+            "SAMTOOLS_CONSENSUS_IUPAC": samples,
+            "SAMTOOLS_CONSENSUS_A_IUPAC": samples,
+            "BCFTOOLS_MPILEUP_CALL": samples,
             "BCFTOOLS_INDEX": samples, "BCFTOOLS_CONSENSUS": samples,
             "CONCAT_CONSENSUS_FASTA": samples,
         }
@@ -238,6 +245,74 @@ class WorkflowTest(unittest.TestCase):
             "--prefix", sample, "--fastq1", r1, "--fastq2", r2, "--ref", ref, "--fastp",
         ])
         self.check_counts(trace, 1, 1, fastp=True, merge=False)
+
+    def test_selected_consensus_methods(self):
+        sheet, _ = self.fixtures(1)
+        with (self.directory / "test.config").open("a") as handle:
+            handle.write(
+                "params.samtools_iupac_consensus = false\n"
+                "params.samtools_a_iupac_consensus = false\n"
+            )
+        trace = self.run_workflow([
+            "--samplesheet", str(sheet), "--mafft",
+        ])
+        actual = {}
+        for task in trace:
+            process = task["name"].split(" (")[0]
+            actual[process] = actual.get(process, 0) + 1
+
+        self.assertEqual(actual.get("BCFTOOLS_CONSENSUS"), 1)
+        self.assertEqual(actual.get("SAMTOOLS_CONSENSUS_A"), 1)
+        self.assertNotIn("SAMTOOLS_CONSENSUS_IUPAC", actual)
+        self.assertNotIn("SAMTOOLS_CONSENSUS_A_IUPAC", actual)
+        self.assertEqual(actual.get("CONCAT_CONSENSUS_FASTA"), 1)
+        self.assertEqual(actual.get("GATHER_SEQS_FOR_MAFFT"), 1)
+        self.assertEqual(actual.get("MAFFT_ALIGN"), 1)
+        fasta = self.directory / "output" / "consensus" / "sample00.fasta"
+        self.assertEqual(fasta.read_text().count(">"), 2)
+        alignment = self.directory / "output" / "mafft" / "sample00.aln.fasta"
+        self.assertEqual(alignment.read_text().count(">"), 3)
+
+    def test_single_consensus_method_skips_concatenation(self):
+        sheet, _ = self.fixtures(2)
+        with (self.directory / "test.config").open("a") as handle:
+            handle.write(
+                "params.samtools_a_consensus = false\n"
+                "params.samtools_iupac_consensus = false\n"
+                "params.samtools_a_iupac_consensus = false\n"
+            )
+        trace = self.run_workflow([
+            "--samplesheet", str(sheet),
+        ])
+        processes = [task["name"].split(" (")[0] for task in trace]
+        self.assertEqual(processes.count("BCFTOOLS_CONSENSUS"), 2)
+        for process in (
+            "SAMTOOLS_CONSENSUS_A", "SAMTOOLS_CONSENSUS_IUPAC",
+            "SAMTOOLS_CONSENSUS_A_IUPAC", "CONCAT_CONSENSUS_FASTA",
+            "GATHER_SEQS_FOR_MAFFT", "MAFFT_ALIGN",
+        ):
+            self.assertNotIn(process, processes)
+        for index in range(2):
+            output = self.directory / "output" / "consensus"
+            fasta = output / f"sample{index:02}.bcftools.fasta"
+            self.assertEqual(fasta.read_text().count(">"), 1)
+            self.assertFalse((output / f"sample{index:02}.fasta").exists())
+
+    def test_mafft_requires_two_consensus_methods(self):
+        sheet, _ = self.fixtures(1)
+        with (self.directory / "test.config").open("a") as handle:
+            handle.write(
+                "params.samtools_a_consensus = false\n"
+                "params.samtools_iupac_consensus = false\n"
+                "params.samtools_a_iupac_consensus = false\n"
+            )
+        for bcftools in ("false", "true"):
+            with self.subTest(bcftools_consensus=bcftools):
+                with (self.directory / "test.config").open("a") as handle:
+                    handle.write(f"params.bcftools_consensus = {bcftools}\n")
+                self.run_workflow([
+                    "--samplesheet", str(sheet), "--mafft",
+                ], expected_error="MAFFT requires at least two consensus methods to be enabled.")
 
 
 if __name__ == "__main__":
