@@ -16,8 +16,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 NEXTFLOW = shutil.which("nextflow")
+MULTIQC = shutil.which("multiqc")
 TOOL = r"""#!/usr/bin/env python3
 import gzip
+import json
 from pathlib import Path
 import shutil
 import sys
@@ -39,7 +41,15 @@ elif tool == "fastp":
         with open(value("--in" + read), "rb") as source:
             with gzip.open(value("--out" + read), "wb") as target:
                 shutil.copyfileobj(source, target)
-    Path(value("--json")).write_text("{}")
+    Path(value("--json")).write_text(json.dumps({
+        "command": "fastp " + " ".join(args),
+        "summary": {
+            "fastp_version": "1.3.2",
+            "before_filtering": {"total_reads": 4},
+            "after_filtering": {"total_reads": 4},
+        },
+        "filtering_result": {"passed_filter_reads": 4},
+    }))
     Path(value("--html")).write_text("<html></html>")
 elif tool == "samtools":
     if args[0] == "sort":
@@ -69,6 +79,13 @@ elif tool == "bcftools":
         raise SystemExit("Unexpected bcftools arguments: " + repr(args))
 elif tool == "mafft":
     sys.stdout.write(Path(args[-1]).read_text())
+elif tool == "multiqc":
+    reports = sorted(path.name for path in Path(".").glob("*.fastp.json"))
+    if not reports:
+        raise SystemExit("No fastp JSON reports staged for MultiQC")
+    Path("multiqc_report.html").write_text("<html></html>")
+    Path("multiqc_data").mkdir()
+    Path("multiqc_data/reports.txt").write_text("\n".join(reports) + "\n")
 else:
     raise SystemExit("Unexpected tool: " + tool)
 """
@@ -85,7 +102,7 @@ class WorkflowTest(unittest.TestCase):
         executable = tools / "mock-tool"
         executable.write_text(TOOL)
         executable.chmod(0o755)
-        for tool in ("bwa", "fastp", "samtools", "bcftools", "mafft"):
+        for tool in ("bwa", "fastp", "samtools", "bcftools", "mafft", "multiqc"):
             (tools / tool).symlink_to(executable)
         self.env = dict(os.environ, PATH=f"{tools}{os.pathsep}{os.environ['PATH']}")
         (self.directory / "test.config").write_text(
@@ -150,6 +167,7 @@ class WorkflowTest(unittest.TestCase):
             expected["MERGE_FASTQ"] = samples
         if fastp:
             expected["FASTP"] = samples
+            expected["MULTIQC"] = 1
         if mafft:
             expected.update(GATHER_SEQS_FOR_MAFFT=samples, MAFFT_ALIGN=samples)
         actual = {}
@@ -161,6 +179,15 @@ class WorkflowTest(unittest.TestCase):
         for index in range(samples):
             fasta = self.directory / "output" / "consensus" / f"sample{index:02}.fasta"
             self.assertEqual(fasta.read_text().count(">"), 4)
+        multiqc_output = self.directory / "output" / "multiqc"
+        if fastp:
+            self.assertTrue((multiqc_output / "multiqc_report.html").is_file())
+            self.assertEqual(
+                (multiqc_output / "multiqc_data" / "reports.txt").read_text().splitlines(),
+                [f"sample{index:02}.fastp.json" for index in range(samples)],
+            )
+        else:
+            self.assertFalse(multiqc_output.exists())
 
     def test_55_samples_two_lanes_fastp(self):
         sheet, _ = self.fixtures(55)
@@ -189,6 +216,20 @@ class WorkflowTest(unittest.TestCase):
 
     def test_multiple_references_with_fastp(self):
         self.check_multiple_references(fastp=True)
+
+    @unittest.skipUnless(MULTIQC, "MultiQC is required for sample-naming regression")
+    def test_multiqc_preserves_sample_names(self):
+        (self.directory / "bin" / "multiqc").unlink()
+        sheet, _ = self.fixtures(3)
+        trace = self.run_workflow(["--samplesheet", str(sheet), "--fastp"])
+        self.assertEqual(sum(task["name"] == "MULTIQC" for task in trace), 1)
+        output = self.directory / "output" / "multiqc"
+        self.assertTrue((output / "multiqc_report.html").is_file())
+        with (output / "multiqc_data" / "multiqc_fastp.txt").open() as handle:
+            data = {row["Sample"]: row for row in csv.DictReader(handle, delimiter="\t")}
+        self.assertEqual(set(data), {"sample00", "sample01", "sample02"})
+        for report in data.values():
+            self.assertIn("--in1 merged_R1.fastq --in2 merged_R2.fastq", report["command"])
 
     def test_single_sample_fastp(self):
         _, rows = self.fixtures(1)

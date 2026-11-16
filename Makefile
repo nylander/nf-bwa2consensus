@@ -7,42 +7,45 @@
 all: run
 
 run:
-	@echo "map S1009 and S1011 against 28S"
+	@echo "map all against mix"
 	nextflow run main.nf --samplesheet input/samples.csv
 	@tree output
 
-two-three:
-	@echo "S1009 mapped against 28S, S1010 and S1011 against COI"
-	nextflow run main.nf --samplesheet input/samples-28s-coi.csv
+two-genes:
+	@echo "map Apa against matK, Bpa,Cpa,Dpa against trnLF"
+	nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv
 	@tree output
 
 keepbam:
-	@echo "S1009 mapped against 28S, S1010 and S1011 against COI, keep bam files"
-	nextflow run main.nf --samplesheet input/samples-28s-coi.csv --keepbam
+	@echo "map Apa against matK, Bpa,Cpa,Dpa against trnLF, keep bam files"
+	nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv --keepbam
 	@tree output
 
 fastp:
-	@echo "run fastp and then map S1009 and S1011 against 28S"
+	@echo "run fastp and then map all against mix"
 	nextflow run main.nf --samplesheet input/samples.csv --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50'
 	@tree output
 
 mafft:
-	@echo "map S1009 and S1011 against 28S, align ref+consensus with mafft"
-	nextflow run main.nf --samplesheet input/samples.csv --mafft --mafft_args='--auto'
+	@echo "map Apa against matK, Bpa,Cpa,Dpa against trnLF, align ref+consensus with mafft"
+	nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv --mafft --mafft_args='--auto'
 	@tree output
 
 fastp-mafft-keepbam:
 	@echo "run all options"
-	nextflow run main.nf --samplesheet input/samples-28s-coi.csv --mafft --mafft_args='--auto' --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50' --bwa_args='-k 15' --bwa_index_args='-a is' --keepbam
+	nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv --mafft --mafft_args='--auto' --fastp --fastp_args='--qualified_quality_phred 30 --length_required 50' --bwa_args='-k 15' --bwa_index_args='-a is' --keepbam
 	@tree output
 
 test: distclean fastp-mafft-keepbam
+
+regression-test:
+	python3 -m unittest discover -s tests -v
 
 clean:
 	rm -rf work/ .nextflow*
 
 distclean:
-	rm -rf work/ output/ .nextflow*
+	rm -rf work/ output/ .nextflow* tests/__pycache__/
 
 # vim:ft=make
 #

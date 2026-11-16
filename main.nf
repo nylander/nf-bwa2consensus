@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-06 15:04:30
+- Last modified: 2026-11-16 10:14:24
 - Sign: JN
 */
 
@@ -11,6 +11,7 @@ params.ref = null
 params.fastq1 = null
 params.fastq2 = null
 params.prefix = null
+
 
 workflow {
 
@@ -73,19 +74,24 @@ workflow {
   def ch_for_bwa
 
   if( params.fastp ) {
-    def ch_reads_for_fastp = ch_joined.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2, ref, refdir) }
+    def ch_reads_for_fastp = ch_joined.map {
+      sample, r1, r2, ref, refdir -> tuple(sample, r1, r2, ref, refdir)
+    }
 
-    def ch_trimmed = FASTP(
+    def ch_fastp = FASTP(
       ch_reads_for_fastp.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2) }
-    ).reads
+    )
 
-    ch_for_bwa = ch_trimmed
+    if (params.multiqc) {
+      MULTIQC(ch_fastp.json.map { sample, json -> json }.collect())
+    }
+
+    ch_for_bwa = ch_fastp.reads
       .join(
         ch_reads_for_fastp.map { s, r1, r2, ref, refdir -> tuple(s, ref, refdir) },
         by: 0, failOnDuplicate: true, failOnMismatch: true
       )
-  }
-  else {
+  } else {
     ch_for_bwa = ch_joined
   }
 
@@ -122,6 +128,7 @@ workflow {
   }
 }
 
+
 process BWA_INDEX {
   tag { ref.baseName }
 
@@ -143,6 +150,7 @@ process BWA_INDEX {
   cp -v ${ref}.amb ${ref}.ann ${ref}.bwt ${ref}.pac ${ref}.sa ref_index/
   """
 }
+
 
 process BWA_MEM {
   tag { sample_id }
@@ -167,6 +175,7 @@ process BWA_MEM {
   """
 }
 
+
 process SAMTOOLS_INDEX_BAM {
   tag { sample_id }
 
@@ -185,6 +194,7 @@ process SAMTOOLS_INDEX_BAM {
   samtools index -@ ${params.threads} ${bam}
   """
 }
+
 
 process SAMTOOLS_DEPTH {
   tag { sample_id }
@@ -205,6 +215,7 @@ process SAMTOOLS_DEPTH {
   samtools depth -a --threads ${params.threads} ${bam} > ${sample_id}.depth.tsv
   """
 }
+
 
 process SAMTOOLS_CONSENSUS {
   tag { sample_id }
@@ -229,6 +240,7 @@ process SAMTOOLS_CONSENSUS {
   """
 }
 
+
 process SAMTOOLS_CONSENSUS_A {
   tag { sample_id }
   publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
@@ -251,6 +263,7 @@ process SAMTOOLS_CONSENSUS_A {
   mv "\$tmp" ${sample_id}.samtools-a.fasta
   """
 }
+
 
 process SAMTOOLS_CONSENSUS_IUPAC {
   tag { sample_id }
@@ -275,6 +288,7 @@ process SAMTOOLS_CONSENSUS_IUPAC {
   """
 }
 
+
 process BCFTOOLS_MPILEUP_CALL {
   tag { sample_id }
 
@@ -297,6 +311,7 @@ process BCFTOOLS_MPILEUP_CALL {
   """
 }
 
+
 process BCFTOOLS_INDEX {
   tag { sample_id }
 
@@ -315,6 +330,7 @@ process BCFTOOLS_INDEX {
   bcftools index --threads ${params.threads} ${vcfgz}
   """
 }
+
 
 process BCFTOOLS_CONSENSUS {
   tag { sample_id }
@@ -340,6 +356,7 @@ process BCFTOOLS_CONSENSUS {
   """
 }
 
+
 process CONCAT_CONSENSUS_FASTA {
   tag { sample_id }
   publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
@@ -357,6 +374,7 @@ process CONCAT_CONSENSUS_FASTA {
   """
 }
 
+
 process GATHER_SEQS_FOR_MAFFT {
   tag { sample_id }
 
@@ -372,6 +390,7 @@ process GATHER_SEQS_FOR_MAFFT {
   cat ${ref} ${consensus_fa} > ${sample_id}.with_ref.fasta
   """
 }
+
 
 process MAFFT_ALIGN {
   tag { "Aligning ${sample_id}" }
@@ -392,6 +411,7 @@ process MAFFT_ALIGN {
   mafft ${params.mafft_args} ${fasta} > ${sample_id}.aln.fasta
   """
 }
+
 
 process FASTP {
   tag { sample_id }
@@ -426,6 +446,28 @@ process FASTP {
     ${params.fastp_args}
   """
 }
+
+
+process MULTIQC {
+
+    conda "bioconda::multiqc=1.33"
+    container "oras://community.wave.seqera.io/browse/data-studios/multiqc:1.33--4a0e68b18e1f745e"
+
+    publishDir "${params.outdir}/multiqc", mode: 'copy'
+
+    input:
+    path '*' // Stages all collected files into the working directory
+
+    output:
+    path "multiqc_report.html", emit: report
+    path "multiqc_data",        emit: data
+
+    script:
+    """
+    multiqc . --cl-config 'use_filename_as_sample_name: [fastp]'
+    """
+}
+
 
 process MERGE_FASTQ {
   tag { sample_id }

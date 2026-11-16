@@ -6,7 +6,10 @@ consensus`](https://github.com/samtools/samtools) and [`bcftools
 consensus`](https://samtools.github.io/bcftools/howtos/consensus-sequence.html)).
 
 Input (Illumina fastq) can optionally be filtered using
-[fastp](https://github.com/opengene/fastp).
+[fastp](https://github.com/opengene/fastp). With `--fastp`, a combined MultiQC
+report is written to `output/multiqc/` (or `<outdir>/multiqc/` when using
+`--outdir`). The report is `multiqc_report.html`; sample names come from the
+`{sample}.fastp.json` filenames, not the shared merged FASTQ filenames.
 
 Tested using [nextflow](https://www.nextflow.io/) version 26.04.1.12112.
 
@@ -135,6 +138,8 @@ python3 -m unittest discover -s tests -v
 These tests run the workflow with lightweight stand-ins for the bioinformatics
 tools to check channel wiring, task counts, and lane merging. They do not
 validate biological results or require Conda environments.
+If MultiQC is also on `PATH`, an additional regression test uses the real
+MultiQC parser to verify that merged reads retain distinct sample names.
 
 ## License
 
