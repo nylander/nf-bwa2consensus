@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-16 09:53:01
+- Last modified: 2026-11-16 10:06:50
 - Sign: JN
 */
 
@@ -74,29 +74,18 @@ workflow {
   def ch_for_bwa
 
   if( params.fastp ) {
-    def ch_reads_for_fastp = ch_joined.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2, ref, refdir) }
+    def ch_fastp = FASTP(ch_reads_for_fastp.map { sample, r1, r2 -> tuple(sample, r1, r2) })
 
-    def ch_trimmed = FASTP(
-      ch_reads_for_fastp.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2) }
-    ).reads
+    if (params.multiqc) {
+      MULTIQC(ch_fastp.json.map { sample, json -> json }.collect())
+    }
 
-    // // add here a call to  MULTIQC(FASTP.out.json.collect())
-    // // Do we need to create a new channel?
-    // // For example:
-    //    if ( params.multiqc ) {
-    //        def ch_fastp_json = FASTP(
-    //          ch_json_for_multiqc.map { sample, r1, r2, ref, refdir -> tuple(sample, r1, r2) }
-    //        ).json
-    //    }
-    //
-
-    ch_for_bwa = ch_trimmed
+    ch_for_bwa = ch_fastp.reads
       .join(
         ch_reads_for_fastp.map { s, r1, r2, ref, refdir -> tuple(s, ref, refdir) },
         by: 0, failOnDuplicate: true, failOnMismatch: true
       )
-  }
-  else {
+  } else {
     ch_for_bwa = ch_joined
   }
 
