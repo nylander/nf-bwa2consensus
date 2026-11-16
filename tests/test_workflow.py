@@ -158,8 +158,10 @@ class WorkflowTest(unittest.TestCase):
         expected = {
             "BWA_INDEX": references, "BWA_MEM": samples,
             "SAMTOOLS_DEPTH": samples, "SAMTOOLS_INDEX_BAM": samples,
-            "SAMTOOLS_CONSENSUS": samples, "SAMTOOLS_CONSENSUS_A": samples,
-            "SAMTOOLS_CONSENSUS_IUPAC": samples, "BCFTOOLS_MPILEUP_CALL": samples,
+            "SAMTOOLS_CONSENSUS_A": samples,
+            "SAMTOOLS_CONSENSUS_IUPAC": samples,
+            "SAMTOOLS_CONSENSUS_A_IUPAC": samples,
+            "BCFTOOLS_MPILEUP_CALL": samples,
             "BCFTOOLS_INDEX": samples, "BCFTOOLS_CONSENSUS": samples,
             "CONCAT_CONSENSUS_FASTA": samples,
         }
@@ -238,6 +240,28 @@ class WorkflowTest(unittest.TestCase):
             "--prefix", sample, "--fastq1", r1, "--fastq2", r2, "--ref", ref, "--fastp",
         ])
         self.check_counts(trace, 1, 1, fastp=True, merge=False)
+
+    def test_selected_consensus_methods(self):
+        sheet, _ = self.fixtures(1)
+        trace = self.run_workflow([
+            "--samplesheet", str(sheet), "--mafft",
+            "--samtools_a_consensus", "false",
+            "--samtools_iupac_consensus", "false",
+            "--samtools_a_iupac_consensus", "false",
+        ])
+        actual = {}
+        for task in trace:
+            process = task["name"].split(" (")[0]
+            actual[process] = actual.get(process, 0) + 1
+
+        self.assertEqual(actual.get("BCFTOOLS_CONSENSUS"), 1)
+        self.assertNotIn("SAMTOOLS_CONSENSUS_A", actual)
+        self.assertNotIn("SAMTOOLS_CONSENSUS_IUPAC", actual)
+        self.assertNotIn("SAMTOOLS_CONSENSUS_A_IUPAC", actual)
+        self.assertEqual(actual.get("CONCAT_CONSENSUS_FASTA"), 1)
+        self.assertEqual(actual.get("MAFFT_ALIGN"), 1)
+        fasta = self.directory / "output" / "consensus" / "sample00.fasta"
+        self.assertEqual(fasta.read_text().count(">"), 1)
 
 
 if __name__ == "__main__":
