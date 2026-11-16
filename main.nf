@@ -133,12 +133,12 @@ workflow {
     )
   }
 
-  if( params.mafft && !ch_consensus_outputs ) {
-    error "MAFFT requires at least one consensus method to be enabled."
+  if( params.mafft && ch_consensus_outputs.size() < 2 ) {
+    error "MAFFT requires at least two consensus methods to be enabled."
   }
 
   def ch_concat_out = Channel.empty()
-  if( ch_consensus_outputs ) {
+  if( ch_consensus_outputs.size() > 1 ) {
     def ch_selected_consensus = ch_consensus_outputs.drop(1).inject(ch_consensus_outputs[0]) { combined, next ->
       combined.mix(next)
     }
