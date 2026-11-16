@@ -11,6 +11,11 @@ run:
 	nextflow run main.nf --samplesheet input/samples.csv
 	@tree output
 
+apptainer:
+	@echo "map all against mix"
+	nextflow run main.nf --apptainer --samplesheet input/samples.csv
+	@tree output
+
 two-genes:
 	@echo "map Apa against matK, Bpa,Cpa,Dpa against trnLF"
 	nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv
