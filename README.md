@@ -35,7 +35,7 @@ run](#single-sample) below):
     │   ├── Apa.bcftools.fasta
     │   ├── Apa.fasta
     │   ├── Apa.samtools-a.fasta
-    │   ├── Apa.samtools.fasta
+    │   ├── Apa.samtools-a-iupac.fasta
     │   ├── Apa.samtools-iupac.fasta
     │   └── matK.fas
     └── depth
@@ -76,7 +76,7 @@ single/
 │   ├── Apa.bcftools.fasta
 │   ├── Apa.fasta
 │   ├── Apa.samtools-a.fasta
-│   ├── Apa.samtools.fasta
+│   ├── Apa.samtools-a-iupac.fasta
 │   ├── Apa.samtools-iupac.fasta
 │   └── matK.fas
 ├── depth

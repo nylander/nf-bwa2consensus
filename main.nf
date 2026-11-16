@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-16 16:51:07
+- Last modified: 2026-11-16 18:38:19
 - Sign: JN
 */
 
@@ -508,7 +508,8 @@ process FASTP {
 process MULTIQC {
 
     conda "bioconda::multiqc=1.33"
-    container "oras://community.wave.seqera.io/browse/data-studios/multiqc:1.33--4a0e68b18e1f745e"
+    //container "oras://community.wave.seqera.io/browse/data-studios/multiqc:1.33--4a0e68b18e1f745e"
+    container "docker://quay.io/biocontainers/multiqc:1.33--pyhdfd78af_0"
 
     publishDir "${params.outdir}/multiqc", mode: 'copy'
 
