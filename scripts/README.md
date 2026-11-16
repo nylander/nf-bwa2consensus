@@ -1,11 +1,13 @@
 # scripts
 
-## bwa2consensus.py
+## 1. [bwa2consensus.py](bwa2consensus.py)
 
 Map fastq sequences to reference using bwa mem, calculate consensus sequence
 using samtools consensus and/or bcftools.
 
 [MIT License](../LICENSE)
+
+### Usage and options
 
 ```
 usage: bwa2consensus.py [-h] --fastq1 FASTQ1 --fastq2 FASTQ2 --ref REF [--outdir OUTDIR]
@@ -24,11 +26,15 @@ options:
 
 ```
 
-## sam2consensus.py
+## 2. [sam2consensus.py](sam2consensus.py)
+
+Extract the consensus sequence from a SAM file.
 
 Forked from <https://github.com/edgardomortiz/sam2consensus>
 
 [GPL v.3 license](LICENSE.GPLv3)
+
+### Usage and options
 
 ```
 usage: sam2consensus.py [-h] -i FILENAME [-c THRESHOLDS] [-n N] [-o OUTFOLDER]
@@ -78,10 +84,7 @@ options:
                         Ignore deletions longer than this value, default=150
 ```
 
-## concatenate_mixed_marker_output.py
-
-Map fastq sequences to reference using bwa mem, calculate consensus sequence
-using samtools consensus and/or bcftools.
+## 3. [concatenate\_mixed\_marker\_output.py](concatenate_mixed_marker_output.py)
 
 Concatenate marker-specific fasta files into one fasta file per marker.
 Note: fasta headers need to have labels following a specific format. For
@@ -89,12 +92,14 @@ example: `>... [ref:PV424158.1|ITS|1]`.
 
 [MIT License](../LICENSE)
 
+### Usage and options
+
 ```
 usage: concatenate_mixed_marker_output.py [-h] input_folder output_folder
 
-Concatenate marker-specific fasta files into one fasta file per marker.
-Note: fasta headers need to have labels following a specific format. For
-example: >... [ref:PV424158.1|ITS|1]
+Concatenate marker-specific fasta files into one fasta file per marker. Note: fasta headers need to have labels
+following a specific format. For example: >... [ref:PV424158.1|ITS|1] Current version searches input folder fo files
+suffixes: .bcftools.fasta, .samtools-a.fasta, .samtools.fasta, .samtools-iupac.fasta
 
 positional arguments:
   input_folder   Path to the input folder containing fasta files
@@ -102,4 +107,5 @@ positional arguments:
 
 options:
   -h, --help     show this help message and exit
+
 ```

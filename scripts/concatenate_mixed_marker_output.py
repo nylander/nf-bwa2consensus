@@ -73,7 +73,9 @@ def main():
         description=(
             "Concatenate marker-specific fasta files into one fasta file per marker.\n"
             "Note: fasta headers need to have labels following a specific format.\n"
-            "For example: >... [ref:PV424158.1|ITS|1]"
+            "For example: >... [ref:PV424158.1|ITS|1]\n"
+            "Current version searches input folder fo files suffixes:\n"
+            ".bcftools.fasta, .samtools-a.fasta, .samtools.fasta, .samtools-iupac.fasta"
         )
     )
     parser.add_argument("input_folder",
