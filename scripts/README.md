@@ -97,9 +97,12 @@ example: `>... [ref:PV424158.1|ITS|1]`.
 ```
 usage: concatenate_mixed_marker_output.py [-h] input_folder output_folder
 
-Concatenate marker-specific fasta files into one fasta file per marker. Note: fasta headers need to have labels
-following a specific format. For example: >... [ref:PV424158.1|ITS|1] Current version searches input folder fo files
-suffixes: .bcftools.fasta, .samtools-a.fasta, .samtools.fasta, .samtools-iupac.fasta
+Concatenate marker-specific fasta files into one fasta file per marker.
+Fasta headers need to have labels following a specific format.
+For example: ">... [ref:PV424158.1|ITS|1]".
+Current version searches input_folder for files with suffix .fasta but
+ignores files with suffixes .bcftools.fasta, .samtools-a.fasta,
+.samtools.fasta, .samtools-iupac.fasta.
 
 positional arguments:
   input_folder   Path to the input folder containing fasta files
@@ -107,5 +110,4 @@ positional arguments:
 
 options:
   -h, --help     show this help message and exit
-
 ```

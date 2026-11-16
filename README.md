@@ -106,8 +106,8 @@ are merged together, before optional fastp filtering. A sample must use a
 single reference file.
 
 For example, 55 samples with two read pairs each produce 55 merged read pairs
-(110 FASTQ files), 55 FASTP tasks when `--fastp` is enabled, and 55 BWA_MEM
-tasks. BWA_INDEX runs once per distinct reference file, not once per sample.
+(110 FASTQ files), 55 `FASTP` tasks when `--fastp` is enabled, and 55 `BWA_MEM`
+tasks. `BWA_INDEX` runs once per distinct reference file, not once per sample.
 
 **Note**: the option `--mafft` should *not* be used for a run with a "mixed"
 fasta reference: sequences are concatenated before the MSA and can therefore
