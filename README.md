@@ -22,7 +22,7 @@ samples are located in [scripts/bwa2consensus.py](scripts/bwa2consensus.py).
 2. fastq files (paired-end, can be compressed)
 3. Reference sequence in fasta format
 
-These input can be specified on command line OR in a CSV file.
+These input can be specified on command line *or* in a CSV file.
 See [Run-examples](#run) below.
 
 ## Output
@@ -30,23 +30,37 @@ See [Run-examples](#run) below.
 An output directory containing (Example. See also output from [single sample
 run](#single-sample) below):
 
-    output/
-    ├── consensus
-    │   ├── Apa.bcftools.fasta
-    │   ├── Apa.fasta
-    │   ├── Apa.samtools-a.fasta
-    │   ├── Apa.samtools-a-iupac.fasta
-    │   ├── Apa.samtools-iupac.fasta
-    │   └── matK.fas
-    └── depth
-        ├── Apa.depth.tsv
-        └── matK.fas
+```
+output/
+├── consensus
+│   ├── Apa.bcftools.fasta
+│   ├── Apa.fasta
+│   ├── Apa.samtools-a.fasta
+│   ├── Apa.samtools-a-iupac.fasta
+│   ├── Apa.samtools-iupac.fasta
+│   └── matK.fas
+└── depth
+    ├── Apa.depth.tsv
+    └── matK.fas
+```
 
 ## Run
 
+**Note**: example fastq files can be downloaded from here (572 MB): <https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9>
+
+For example (using `wget`):
+
+```sh
+$ cd input
+$ wget -q --show-progress \
+  "https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9/download" \
+  -O input/fastq.zip
+$ unzip -o input/fastq.zip && rm input/fastq.zip
+```
+
 ### single sample
 
-```
+```sh
 $ nextflow run main.nf \
    --fastq1='input/fastq/S14_1001_01_R1.fq.gz' \
    --fastq2='input/fastq/S14_1001_01_R2.fq.gz' \
@@ -96,13 +110,13 @@ single/
 
 ### three samples, different references (see [samples-matK-trnLF.csv](input/samples-matK-trnLF.csv))
 
-```
+```sh
 $ nextflow run main.nf --samplesheet input/samples-matK-trnLF.csv
 ```
 
 ### three samples, different references in one multi-fasta file (see [samples.csv](input/samples.csv))
 
-```
+```sh
 $ nextflow run main.nf --samplesheet input/samples.csv
 ```
 
@@ -142,8 +156,8 @@ The process involving `fastp` may occasionally stall the workflow. Try to abort
 
 With Nextflow and a supported Java runtime installed, run:
 
-```
-make regression-test
+```sh
+$ make regression-test
 ```
 
 These tests run the workflow with lightweight stand-ins for the bioinformatics
