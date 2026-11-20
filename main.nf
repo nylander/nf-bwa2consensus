@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-20 16:37:45
+- Last modified: 2026-11-20 16:45:17
 - Sign: JN
 */
 
@@ -97,8 +97,9 @@ workflow {
 
   ch_bam = BWA_MEM_MARKDUP(ch_for_bwa)
 
-  // Here we wish to add a filtering step of the bam file: FILTER_BAM
-  ch_filtered_bam = FILTER_BAM(ch_bam)
+  ch_filtered_bam = FILTER_BAM(
+    ch_bam.map { sample_id, bam, ref, stats, flagstat -> tuple(sample_id, bam, ref) }
+  )
 
   SAMTOOLS_DEPTH_COVERAGE(ch_filtered_bam)
 
@@ -189,34 +190,8 @@ process BWA_INDEX {
 }
 
 
-process BWA_MEM {
-  tag { sample_id }
-
-  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
-
-  conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
-  container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
-
-  input:
-  tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_idx)
-
-  output:
-  tuple val(sample_id), path("${sample_id}.bam"), path(ref)
-
-  script:
-  """
-  set -euo pipefail
-  cp -a ${ref_idx}/* .
-  bwa mem ${params.bwa_args} -t ${params.threads} ${ref} ${r1} ${r2} \
-    | samtools sort --threads ${params.threads} -o ${sample_id}.bam
-  """
-}
-
-
 process BWA_MEM_MARKDUP {
   tag { sample_id }
-
-  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
 
   conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
@@ -243,21 +218,21 @@ process BWA_MEM_MARKDUP {
 process FILTER_BAM {
   tag { sample_id }
 
-  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
-
-  conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
-  container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
+  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true,
+    enabled: params.keepbam,
+    saveAs: { name -> name.endsWith('.dedup-filtered.bam') ? name : null }
 
   input:
-    tuple val(sample_id), path(bam)
+    tuple val(sample_id), path(bam), path(ref)
 
   output:
-    tuple val(sample_id), path("${sample}.dedup-filtered.bam")
+    tuple val(sample_id), path("${sample_id}.dedup-filtered.bam"), path(ref)
 
   script:
   """
   set -euo pipefail
-  samtools view -b -q ${params.min_mapqual} -F ${params.exclude_flag} ${bam} -o ${sample}.dedup-filtered.bam
+  samtools view -b -q ${params.min_mapqual} -F ${params.exclude_flag} ${bam} \
+    -o ${sample_id}.dedup-filtered.bam
   """
 }
 
