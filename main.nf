@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-20 16:56:08
+- Last modified: 2026-11-20 17:49:19
 - Sign: JN
 */
 
@@ -62,7 +62,8 @@ workflow {
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), ref) }
     .unique { key, ref -> key }
 
-  def ch_ref_indexed_keyed = BWA_INDEX(ch_refs)
+  def ch_ref_indexes = BWA_INDEX(ch_refs)
+  def ch_ref_indexed_keyed = ch_ref_indexes.bwa
 
   def ch_samples_keyed = ch_samples
     .map { sample, r1, r2, ref -> tuple(ref.toRealPath().toString(), sample, r1, r2, ref) }
@@ -125,7 +126,15 @@ workflow {
   }
 
   if( params.bcftools_consensus) {
-    ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_bam_indexed)
+    def ch_for_mpileup = ch_bam_indexed
+    .map { sample, bam, bai, ref ->
+      tuple(ref.toRealPath().toString(), sample, bam, bai, ref)
+    }
+    .combine(ch_ref_indexes.fai, by: 0)
+    .map { key, sample, bam, bai, ref, fai ->
+      tuple(sample, bam, bai, ref, fai)
+    }
+    ch_vcfgz = BCFTOOLS_MPILEUP_CALL(ch_for_mpileup)
     ch_vcfgz_indexed = BCFTOOLS_INDEX(ch_vcfgz)
     ch_consensus_outputs.add(
       BCFTOOLS_CONSENSUS(ch_vcfgz_indexed)
@@ -173,7 +182,8 @@ process BWA_INDEX {
     tuple val(ref_key), path(ref)
 
   output:
-    tuple val(ref_key), path("ref_index")
+    tuple val(ref_key), path("ref_index"), emit: bwa
+    tuple val(ref_key), path("${ref}.fai"), emit: fai
 
   script:
   """
@@ -342,7 +352,7 @@ process BCFTOOLS_MPILEUP_CALL {
   container "oras://community.wave.seqera.io/library/bcftools:1.23.1--16b1a31e5dc795f7"
 
   input:
-  tuple val(sample_id), path(bam), path(bai), path(ref)
+  tuple val(sample_id), path(bam), path(bai), path(ref), path(fai)
 
   output:
   tuple val(sample_id), path("${sample_id}.vcf.gz"), path(ref)
