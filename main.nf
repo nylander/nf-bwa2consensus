@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-16 18:38:19
+- Last modified: 2026-11-20 16:26:27
 - Sign: JN
 */
 
@@ -95,11 +95,14 @@ workflow {
     ch_for_bwa = ch_joined
   }
 
-  ch_bam = BWA_MEM(ch_for_bwa)
+  ch_bam = BWA_MEM_MARKDUP(ch_for_bwa)
 
-  SAMTOOLS_DEPTH(ch_bam)
+  // Here we wish to add a filtering step of the bam file: FILTER_BAM
+  ch_filtered_bam = FILTER_BAM(ch_bam)
 
-  ch_bam_indexed = SAMTOOLS_INDEX_BAM(ch_bam)
+  SAMTOOLS_DEPTH_COVERAGE(ch_filtered_bam)
+
+  ch_bam_indexed = SAMTOOLS_INDEX_BAM(ch_filtered_bam)
 
   def ch_consensus_outputs = []
 
@@ -210,6 +213,53 @@ process BWA_MEM {
 }
 
 
+process BWA_MEM_MARKDUP {
+  tag { sample_id }
+
+  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
+
+  conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
+  container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
+
+  input:
+  tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_idx)
+
+  output:
+  tuple val(sample_id), path("${sample_id}.dedup.bam"), path(ref), path("${sample_id}.markdup.stats.txt"), path("${sample_id}.flagstat.txt")
+
+  script:
+  """
+  set -euo pipefail
+  cp -a ${ref_idx}/* .
+  bwa mem ${params.bwa_args} -t ${params.threads} ${ref} ${r1} ${r2} \
+    | samtools fixmate -@ ${params.threads} -m -u - - \
+    | samtools sort -@ ${params.threads} -u - \
+    | samtools markdup -@ ${params.threads} -r -s -f ${sample_id}.markdup.stats.txt - ${sample_id}.dedup.bam
+  samtools flagstat ${sample_id}.dedup.bam > ${sample_id}.flagstat.txt
+  """
+}
+
+
+process FILTER_BAM {
+  tag { sample_id }
+
+  conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
+  container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
+
+  input:
+    tuple val(sample_id), path(bam)
+
+  output:
+    tuple val(sample_id), path("${sample}.dedup-filtered.bam")
+
+  script:
+  """
+  set -euo pipefail
+  samtools view -b -q ${params.min_mapqual} -F ${params.exclude_flag} ${bam} -o ${sample}.dedup-filtered.bam
+  """
+}
+
+
 process SAMTOOLS_INDEX_BAM {
   tag { sample_id }
 
@@ -230,7 +280,7 @@ process SAMTOOLS_INDEX_BAM {
 }
 
 
-process SAMTOOLS_DEPTH {
+process SAMTOOLS_DEPTH_COVERAGE {
   tag { sample_id }
   publishDir "${params.outdir}/depth", mode: 'copy', overwrite: true
 
@@ -241,38 +291,16 @@ process SAMTOOLS_DEPTH {
   tuple val(sample_id), path(bam), path(ref)
 
   output:
-  tuple val(sample_id), path("${sample_id}.depth.tsv"), path(ref)
+  tuple val(sample_id), path("${sample_id}.depth.tsv"), path(ref), path("${sample_id}.coverage.tsv")
 
   script:
   """
   set -euo pipefail
-  samtools depth -a --threads ${params.threads} ${bam} > ${sample_id}.depth.tsv
+  samtools view -u ${bam} |
+    tee >(samtools coverage - > ${sample_id}.coverage.tsv) \
+    >(samtools depth -aa - > ${sample_id}.depth.tsv) > /dev/null
   """
 }
-
-
-// process SAMTOOLS_CONSENSUS {
-//   tag { sample_id }
-//   publishDir "${params.outdir}/consensus", mode: 'copy', overwrite: true
-// 
-//   conda "bioconda::samtools=1.23.1"
-//   container "oras://community.wave.seqera.io/library/samtools:1.23.1--5cb989b890127f7a"
-// 
-//   input:
-//   tuple val(sample_id), path(bam), path(bai), path(ref)
-// 
-//   output:
-//   tuple val(sample_id), path("${sample_id}.samtools.fasta"), path(ref)
-// 
-//   script:
-//   """
-//   set -euo pipefail
-//   samtools consensus --threads ${params.threads} ${bam} -o ${sample_id}.samtools.fasta
-//   tmp=${sample_id}.samtools.fasta.tmp
-//   sed "/^>/ s/^>\\(.*\\)/>${sample_id} samtools-consensus [ref:\\1]/" ${sample_id}.samtools.fasta > "\$tmp"
-//   mv "\$tmp" ${sample_id}.samtools.fasta
-//   """
-// }
 
 
 process SAMTOOLS_CONSENSUS_A {
