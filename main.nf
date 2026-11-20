@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-20 17:49:19
+- Last modified: 2026-11-20 17:55:52
 - Sign: JN
 */
 
@@ -202,9 +202,16 @@ process BWA_MEM_MARKDUP_FILTER {
   conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
 
-  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true,
-    enabled: params.keepbam,
-    saveAs: { name -> name.endsWith('.dedup-filtered.bam') ? name : null }
+  // publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true,
+  //   enabled: params.keepbam,
+  //   saveAs: { name -> name.endsWith('.dedup-filtered.bam') ? name : null }
+    publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true,
+      enabled: params.keepbam,
+      saveAs: { name ->
+        (name.endsWith('.dedup-filtered.bam') ||
+         name.endsWith('.flagstat.txt') ||
+         name.endsWith('.markdup.stats.txt')) ? name : null
+      }
 
   input:
     tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_idx)
@@ -233,6 +240,10 @@ process BWA_MEM_MARKDUP_FILTER {
 
 process SAMTOOLS_INDEX_BAM {
   tag { sample_id }
+
+  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true,
+    enabled: params.keepbam,
+    pattern: '*.bam.bai'
 
   conda "bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/samtools:1.23.1--5cb989b890127f7a"
