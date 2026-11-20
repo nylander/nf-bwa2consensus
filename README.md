@@ -51,7 +51,6 @@ output/
 For example (using `wget`):
 
 ```sh
-$ cd input
 $ wget -q --show-progress \
   "https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9/download" \
   -O input/fastq.zip
