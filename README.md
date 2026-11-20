@@ -54,7 +54,8 @@ For example (using `wget`):
 $ wget -q --show-progress \
     "https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9/download" \
     -O input/fastq.zip && \
-  unzip -o input/fastq.zip && rm input/fastq.zip
+  unzip -o input/fastq.zip -d input/ && \
+  rm input/fastq.zip
 ```
 
 ### single sample
