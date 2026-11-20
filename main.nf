@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-20 16:26:27
+- Last modified: 2026-11-20 16:37:45
 - Sign: JN
 */
 
@@ -242,6 +242,8 @@ process BWA_MEM_MARKDUP {
 
 process FILTER_BAM {
   tag { sample_id }
+
+  publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true, enabled: params.keepbam
 
   conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
