@@ -1,6 +1,6 @@
 /*
 - File: nf-bwa2consensus
-- Last modified: 2026-11-20 16:45:17
+- Last modified: 2026-11-20 16:56:08
 - Sign: JN
 */
 
@@ -95,11 +95,7 @@ workflow {
     ch_for_bwa = ch_joined
   }
 
-  ch_bam = BWA_MEM_MARKDUP(ch_for_bwa)
-
-  ch_filtered_bam = FILTER_BAM(
-    ch_bam.map { sample_id, bam, ref, stats, flagstat -> tuple(sample_id, bam, ref) }
-  )
+  ch_filtered_bam = BWA_MEM_MARKDUP_FILTER(ch_for_bwa).bam
 
   SAMTOOLS_DEPTH_COVERAGE(ch_filtered_bam)
 
@@ -190,49 +186,37 @@ process BWA_INDEX {
 }
 
 
-process BWA_MEM_MARKDUP {
+process BWA_MEM_MARKDUP_FILTER {
   tag { sample_id }
 
   conda "bioconda::bwa=0.7.19 bioconda::samtools=1.23.1"
   container "oras://community.wave.seqera.io/library/bwa_samtools:b66f9dd49364105e"
-
-  input:
-  tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_idx)
-
-  output:
-  tuple val(sample_id), path("${sample_id}.dedup.bam"), path(ref), path("${sample_id}.markdup.stats.txt"), path("${sample_id}.flagstat.txt")
-
-  script:
-  """
-  set -euo pipefail
-  cp -a ${ref_idx}/* .
-  bwa mem ${params.bwa_args} -t ${params.threads} ${ref} ${r1} ${r2} \
-    | samtools fixmate -@ ${params.threads} -m -u - - \
-    | samtools sort -@ ${params.threads} -u - \
-    | samtools markdup -@ ${params.threads} -r -s -f ${sample_id}.markdup.stats.txt - ${sample_id}.dedup.bam
-  samtools flagstat ${sample_id}.dedup.bam > ${sample_id}.flagstat.txt
-  """
-}
-
-
-process FILTER_BAM {
-  tag { sample_id }
 
   publishDir "${params.outdir}/bam", mode: 'copy', overwrite: true,
     enabled: params.keepbam,
     saveAs: { name -> name.endsWith('.dedup-filtered.bam') ? name : null }
 
   input:
-    tuple val(sample_id), path(bam), path(ref)
+    tuple val(sample_id), path(r1), path(r2), path(ref), path(ref_idx)
 
   output:
-    tuple val(sample_id), path("${sample_id}.dedup-filtered.bam"), path(ref)
+    tuple val(sample_id), path("${sample_id}.dedup-filtered.bam"), path(ref), emit: bam
+    tuple val(sample_id), path("${sample_id}.markdup.stats.txt"), path("${sample_id}.flagstat.txt"), emit: stats
 
   script:
   """
   set -euo pipefail
-  samtools view -b -q ${params.min_mapqual} -F ${params.exclude_flag} ${bam} \
-    -o ${sample_id}.dedup-filtered.bam
+  cp -a ${ref_idx}/* .
+
+  bwa mem ${params.bwa_args} -t ${params.threads} ${ref} ${r1} ${r2} \
+    | samtools fixmate -@ ${params.threads} -m -u - - \
+    | samtools sort -@ ${params.threads} -u - \
+    | samtools markdup -@ ${params.threads} -r -s -u \
+        -f ${sample_id}.markdup.stats.txt - - \
+    | samtools view -b -q ${params.min_mapqual} -F ${params.exclude_flag} - \
+        -o ${sample_id}.dedup-filtered.bam
+
+  samtools flagstat ${sample_id}.dedup-filtered.bam > ${sample_id}.flagstat.txt
   """
 }
 
