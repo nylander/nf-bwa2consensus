@@ -46,15 +46,15 @@ output/
 
 ## Run
 
-**Note**: example fastq files can be downloaded from here (572 MB): <https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9>
-
+Example fastq files can be downloaded from here (572 MB):
+<https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9>.
 For example (using `wget`):
 
 ```sh
 $ wget -q --show-progress \
-  "https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9/download" \
-  -O input/fastq.zip
-$ unzip -o input/fastq.zip && rm input/fastq.zip
+    "https://nrmcloud.nrm.se/s/SQf5jSWkSnE94Z9/download" \
+    -O input/fastq.zip && \
+  unzip -o input/fastq.zip && rm input/fastq.zip
 ```
 
 ### single sample
